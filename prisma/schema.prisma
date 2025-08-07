@@ -1,0 +1,198 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users are accounts that can log in
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String?   // For email/password auth
+  isAdmin       Boolean   @default(false)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  playerId      String?   @unique // Optional connection to a Player
+  player        Player?   @relation(fields: [playerId], references: [id])
+  captainOf     Team?     @relation("TeamCaptain")
+  emailVerificationTokens EmailVerificationToken[]
+
+  @@map("users")
+}
+
+// Players are participants who can be ranked and drafted
+model Player {
+  id            String    @id @default(cuid())
+  name          String
+  eloRating     Int       @default(1200)
+  gamesPlayed   Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User?     // Optional connection to a User account
+  teamMembers   TeamMember[]
+  eloHistory    EloHistory[]
+  votes         Vote[]    @relation("VoteWinner")
+  votesAgainst  Vote[]    @relation("VoteLoser")
+  draftPicks    DraftPick[]
+
+  @@map("players")
+}
+
+model Team {
+  id          String    @id @default(cuid())
+  name        String
+  captainId   String    @unique
+  eloRating   Int       @default(1200)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  captain     User      @relation("TeamCaptain", fields: [captainId], references: [id])
+  members     TeamMember[]
+  draftPicks  DraftPick[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId   String
+  playerId String
+  joinedAt DateTime @default(now())
+
+  // Relations
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, playerId])
+  @@map("team_members")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("events")
+}
+
+model DraftPick {
+  id              String   @id @default(cuid())
+  teamId          String
+  playerId        String?
+  round           Int
+  pickNumber      Int
+  tradedToTeamId  String?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  team            Team     @relation(fields: [teamId], references: [id])
+  player          Player?  @relation(fields: [playerId], references: [id])
+
+  @@map("draft_picks")
+}
+
+model EloHistory {
+  id        String   @id @default(cuid())
+  playerId  String
+  oldRating Int
+  newRating Int
+  timestamp DateTime @default(now())
+
+  // Relations
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("elo_history")
+}
+
+model Vote {
+  id           String   @id @default(cuid())
+  voterSession String
+  winnerId     String
+  loserId      String
+  timestamp    DateTime @default(now())
+
+  // Relations
+  winner       Player   @relation("VoteWinner", fields: [winnerId], references: [id])
+  loser        Player   @relation("VoteLoser", fields: [loserId], references: [id])
+
+  @@map("votes")
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}
