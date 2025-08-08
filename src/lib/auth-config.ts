@@ -19,16 +19,16 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("🔐 Auth: authorize called");
-        console.log("  Credentials:", credentials ? "provided" : "missing");
+        console.error("🔐 Auth: authorize called");
+        console.error("  Credentials:", credentials ? "provided" : "missing");
 
         if (!credentials?.email || !credentials?.password) {
-          console.log("❌ Auth: Missing credentials");
+          console.error("❌ Auth: Missing credentials");
           return null;
         }
 
         try {
-          console.log("🔍 Auth: Looking up user:", credentials.email);
+          console.error("🔍 Auth: Looking up user:", credentials.email);
           const user = await prisma.user.findUnique({
             where: {
               email: credentials.email,
@@ -36,30 +36,30 @@ export const authOptions = {
           });
 
           if (!user || !user.password) {
-            console.log("❌ Auth: User not found or no password");
+            console.error("❌ Auth: User not found or no password");
             return null;
           }
 
-          console.log("🔐 Auth: Checking password");
+          console.error("🔐 Auth: Checking password");
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           );
 
           if (!isPasswordValid) {
-            console.log("❌ Auth: Invalid password");
+            console.error("❌ Auth: Invalid password");
             return null;
           }
 
           // Check if email is verified
           if (!user.emailVerified) {
-            console.log("❌ Auth: Email not verified");
+            console.error("❌ Auth: Email not verified");
             throw new Error(
               "Email not verified. Please check your email and click the verification link."
             );
           }
 
-          console.log("✅ Auth: User authenticated successfully");
+          console.error("✅ Auth: User authenticated successfully");
           return {
             id: user.id,
             email: user.email,
@@ -92,7 +92,7 @@ export const authOptions = {
       user: any;
       account: any;
     }) {
-      console.log("🔄 JWT Callback:", {
+      console.error("🔄 JWT Callback:", {
         hasUser: !!user,
         hasAccount: !!account,
       });
@@ -118,7 +118,7 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }: { session: any; token: any }) {
-      console.log("🔄 Session Callback:", {
+      console.error("🔄 Session Callback:", {
         hasSession: !!session,
         hasToken: !!token,
       });
@@ -131,7 +131,7 @@ export const authOptions = {
       return session;
     },
     async signIn({ user, account }: { user: any; account: any }) {
-      console.log("🔄 SignIn Callback:", {
+      console.error("🔄 SignIn Callback:", {
         hasUser: !!user,
         hasAccount: !!account,
       });
@@ -156,13 +156,13 @@ export const authOptions = {
   // Add logging for all events
   events: {
     async signIn(message: any) {
-      console.log("📝 Auth Event: signIn", message);
+      console.error("📝 Auth Event: signIn", message);
     },
     async signOut(message: any) {
-      console.log("📝 Auth Event: signOut", message);
+      console.error("📝 Auth Event: signOut", message);
     },
     async session(message: any) {
-      console.log("📝 Auth Event: session", message);
+      console.error("📝 Auth Event: session", message);
     },
   },
 };

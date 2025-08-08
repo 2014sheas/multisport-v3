@@ -5,8 +5,11 @@ export async function GET(request: NextRequest) {
   console.error("🚨 PRODUCTION DEBUG - GET REQUEST");
   console.error("  URL:", request.url);
   console.error("  Method:", request.method);
-  console.error("  Headers:", JSON.stringify(Object.fromEntries(request.headers.entries()), null, 2));
-  
+  console.error(
+    "  Headers:",
+    JSON.stringify(Object.fromEntries(request.headers.entries()), null, 2)
+  );
+
   return NextResponse.json({
     message: "Production debug endpoint",
     timestamp: new Date().toISOString(),
@@ -20,7 +23,7 @@ export async function GET(request: NextRequest) {
       hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
       hasGoogleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
       hasPostgresPrismaUrl: !!process.env.POSTGRES_PRISMA_URL,
-    }
+    },
   });
 }
 
@@ -28,13 +31,13 @@ export async function POST(request: NextRequest) {
   console.error("🚨 PRODUCTION DEBUG - POST REQUEST");
   console.error("  URL:", request.url);
   console.error("  Method:", request.method);
-  
+
   const body = await request.text();
   console.error("  Body:", body);
-  
+
   return NextResponse.json({
     message: "Production debug POST endpoint",
     timestamp: new Date().toISOString(),
     receivedBody: body,
   });
-} 
+}

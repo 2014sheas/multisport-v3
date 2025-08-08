@@ -11,14 +11,21 @@ async function loggedHandler(req: NextRequest) {
   console.error("  URL:", req.url);
   console.error("  User Agent:", req.headers.get("user-agent"));
   console.error("  Referer:", req.headers.get("referer"));
-  
+
   try {
+    // Call the handler directly without wrapping
     const result = await handler(req);
     console.error("✅ NextAuth Response:", result.status);
     return result;
   } catch (error) {
     console.error("❌ NextAuth Error:", error);
-    throw error;
+    // Return a proper error response instead of throwing
+    return new Response(JSON.stringify({ error: "Authentication failed" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 }
 
