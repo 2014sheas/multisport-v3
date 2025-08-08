@@ -21,7 +21,7 @@ export const authOptions = {
       async authorize(credentials) {
         console.log("🔐 Auth: authorize called");
         console.log("  Credentials:", credentials ? "provided" : "missing");
-        
+
         if (!credentials?.email || !credentials?.password) {
           console.log("❌ Auth: Missing credentials");
           return null;
@@ -92,8 +92,11 @@ export const authOptions = {
       user: any;
       account: any;
     }) {
-      console.log("🔄 JWT Callback:", { hasUser: !!user, hasAccount: !!account });
-      
+      console.log("🔄 JWT Callback:", {
+        hasUser: !!user,
+        hasAccount: !!account,
+      });
+
       if (user) {
         token.isAdmin = user.isAdmin;
         token.emailVerified = user.emailVerified;
@@ -115,8 +118,11 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }: { session: any; token: any }) {
-      console.log("🔄 Session Callback:", { hasSession: !!session, hasToken: !!token });
-      
+      console.log("🔄 Session Callback:", {
+        hasSession: !!session,
+        hasToken: !!token,
+      });
+
       if (session.user) {
         session.user.id = token.sub;
         session.user.isAdmin = token.isAdmin;
@@ -125,7 +131,10 @@ export const authOptions = {
       return session;
     },
     async signIn({ user, account }: { user: any; account: any }) {
-      console.log("🔄 SignIn Callback:", { hasUser: !!user, hasAccount: !!account });
+      console.log("🔄 SignIn Callback:", {
+        hasUser: !!user,
+        hasAccount: !!account,
+      });
       // Allow all sign-ins for now
       return true;
     },
