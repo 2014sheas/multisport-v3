@@ -81,11 +81,9 @@ export default function HomePage() {
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Multisport Games 2024
+          Multisport Games 2025
         </h1>
-        <p className="text-lg text-gray-600">
-          Get ready for the ultimate family competition!
-        </p>
+        <p className="text-lg text-gray-600">Dudley Takeover</p>
       </div>
 
       {/* Countdown Section */}
