@@ -19,4 +19,4 @@ export async function POST() {
     message: "NextAuth test POST endpoint",
     method: "POST",
   });
-} 
+}

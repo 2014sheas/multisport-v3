@@ -19,11 +19,16 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log("🔐 Auth: authorize called");
+        console.log("  Credentials:", credentials ? "provided" : "missing");
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log("❌ Auth: Missing credentials");
           return null;
         }
 
         try {
+          console.log("🔍 Auth: Looking up user:", credentials.email);
           const user = await prisma.user.findUnique({
             where: {
               email: credentials.email,
@@ -31,25 +36,30 @@ export const authOptions = {
           });
 
           if (!user || !user.password) {
+            console.log("❌ Auth: User not found or no password");
             return null;
           }
 
+          console.log("🔐 Auth: Checking password");
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           );
 
           if (!isPasswordValid) {
+            console.log("❌ Auth: Invalid password");
             return null;
           }
 
           // Check if email is verified
           if (!user.emailVerified) {
+            console.log("❌ Auth: Email not verified");
             throw new Error(
               "Email not verified. Please check your email and click the verification link."
             );
           }
 
+          console.log("✅ Auth: User authenticated successfully");
           return {
             id: user.id,
             email: user.email,
@@ -58,7 +68,7 @@ export const authOptions = {
             emailVerified: user.emailVerified,
           };
         } catch (error) {
-          console.error("Auth error:", error);
+          console.error("❌ Auth error:", error);
           return null;
         }
       },
@@ -82,6 +92,8 @@ export const authOptions = {
       user: any;
       account: any;
     }) {
+      console.log("🔄 JWT Callback:", { hasUser: !!user, hasAccount: !!account });
+      
       if (user) {
         token.isAdmin = user.isAdmin;
         token.emailVerified = user.emailVerified;
@@ -103,6 +115,8 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }: { session: any; token: any }) {
+      console.log("🔄 Session Callback:", { hasSession: !!session, hasToken: !!token });
+      
       if (session.user) {
         session.user.id = token.sub;
         session.user.isAdmin = token.isAdmin;
@@ -111,6 +125,7 @@ export const authOptions = {
       return session;
     },
     async signIn({ user, account }: { user: any; account: any }) {
+      console.log("🔄 SignIn Callback:", { hasUser: !!user, hasAccount: !!account });
       // Allow all sign-ins for now
       return true;
     },
@@ -127,6 +142,18 @@ export const authOptions = {
         path: "/",
         secure: process.env.NODE_ENV === "production",
       },
+    },
+  },
+  // Add logging for all events
+  events: {
+    async signIn(message: any) {
+      console.log("📝 Auth Event: signIn", message);
+    },
+    async signOut(message: any) {
+      console.log("📝 Auth Event: signOut", message);
+    },
+    async session(message: any) {
+      console.log("📝 Auth Event: session", message);
     },
   },
 };
