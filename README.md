@@ -38,6 +38,10 @@ Create a `.env.local` file in the root directory:
 DATABASE_URL="your-postgresql-connection-string"
 NEXTAUTH_SECRET="your-secret-key-here"
 NEXTAUTH_URL="http://localhost:3000"
+
+# OAuth Providers (Optional)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
 ```
 
 ### 2. Database Setup
@@ -58,7 +62,23 @@ npm install
 npm run dev
 ```
 
-### 4. Admin Setup
+### 4. Google OAuth Setup (Optional)
+
+To enable Google sign-in:
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google+ API
+4. Go to "Credentials" and create an "OAuth 2.0 Client ID"
+5. Set the authorized redirect URIs:
+   - `http://localhost:3000/api/auth/callback/google` (for development)
+   - `https://your-domain.com/api/auth/callback/google` (for production)
+6. Copy the Client ID and Client Secret to your `.env.local` file
+7. Restart your development server
+
+The Google sign-in button will appear on the sign-in page once configured.
+
+### 5. Admin Setup
 
 1. Go to `/admin/users`
 2. Add participants manually

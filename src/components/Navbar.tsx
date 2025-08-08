@@ -80,16 +80,10 @@ export default function Navbar() {
               <div className="flex items-center space-x-2">
                 <a
                   href="/auth/signin"
-                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                   <LogIn className="w-4 h-4 mr-1" />
                   Sign In
-                </a>
-                <a
-                  href="/auth/signup"
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  Sign Up
                 </a>
               </div>
             )}

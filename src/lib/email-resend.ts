@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-var nodemailer = require("nodemailer");
+import nodemailer from "nodemailer";
 
 // Initialize Resend (only if API key is provided)
 const resend = process.env.RESEND_API_KEY
@@ -81,7 +81,7 @@ export async function sendVerificationEmail(
 
       console.log("✅ Email sent via Resend:", data.id);
       return { success: true, messageId: data.id, provider: "resend" };
-    } catch (error) {
+    } catch {
       console.log("⚠️ Resend failed, falling back to Gmail...");
     }
   }
@@ -209,7 +209,7 @@ export async function sendPasswordResetEmail(
       }
 
       return { success: true, messageId: data.id, provider: "resend" };
-    } catch (error) {
+    } catch {
       console.log(
         "⚠️ Resend failed for password reset, falling back to Gmail..."
       );

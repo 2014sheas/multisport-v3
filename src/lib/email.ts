@@ -1,4 +1,4 @@
-var nodemailer = require("nodemailer");
+import nodemailer from "nodemailer";
 
 // Create a transporter for sending emails
 const createTransporter = () => {

@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -9,6 +10,10 @@ const prisma = new PrismaClient();
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -57,23 +62,49 @@ export const authOptions = {
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as const,
   },
+
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({
+      token,
+      user,
+      account,
+    }: {
+      token: any;
+      user: any;
+      account: any;
+    }) {
       if (user) {
-        token.isAdmin = (user as any).isAdmin;
-        token.emailVerified = (user as any).emailVerified;
+        token.isAdmin = user.isAdmin;
+        token.emailVerified = user.emailVerified;
+
+        // If this is a Google OAuth sign-in, ensure email is verified
+        if (account?.provider === "google") {
+          try {
+            await prisma.user.update({
+              where: { email: user.email },
+              data: { emailVerified: true },
+            });
+            token.emailVerified = true;
+          } catch (error) {
+            // User might not exist yet, that's okay
+          }
+        }
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       if (session.user) {
-        (session.user as any).id = token.sub;
-        (session.user as any).isAdmin = token.isAdmin;
-        (session.user as any).emailVerified = token.emailVerified;
+        session.user.id = token.sub;
+        session.user.isAdmin = token.isAdmin;
+        session.user.emailVerified = token.emailVerified || false;
       }
       return session;
+    },
+    async signIn({ user, account }: { user: any; account: any }) {
+      // Always allow sign-ins
+      return true;
     },
   },
   pages: {
