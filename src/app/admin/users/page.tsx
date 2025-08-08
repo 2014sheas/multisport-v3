@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Edit, Trash2 } from "lucide-react";
+import { Search, Edit, Link, Unlink } from "lucide-react";
 import AdminGuard from "@/components/AdminGuard";
 
 interface User {
@@ -16,12 +16,20 @@ interface User {
   };
 }
 
+interface Player {
+  id: string;
+  name: string;
+  eloRating: number;
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
 
   useEffect(() => {
     fetchUsers();
@@ -29,11 +37,18 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/admin/users");
-      const data = await response.json();
-      setUsers(data.users);
+      const [usersResponse, playersResponse] = await Promise.all([
+        fetch("/api/admin/users"),
+        fetch("/api/admin/players"),
+      ]);
+      const usersData = await usersResponse.json();
+      const playersData = await playersResponse.json();
+      console.log("Fetched users:", usersData.users);
+      console.log("Fetched players:", playersData.players);
+      setUsers(usersData.users);
+      setPlayers(playersData.players);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -45,38 +60,50 @@ export default function UsersPage() {
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddUser = async (formData: FormData) => {
+  const handleLinkPlayer = async (userId: string, playerId: string) => {
     try {
-      const response = await fetch("/api/admin/users", {
-        method: "POST",
-        body: formData,
+      console.log(`Linking user ${userId} to player ${playerId}`);
+
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playerId: playerId,
+        }),
       });
 
       if (response.ok) {
-        setShowAddForm(false);
+        console.log("Player linked successfully");
+        setShowLinkModal(false);
+        setEditingUser(null);
         fetchUsers();
+      } else {
+        console.error("Failed to link player:", response.status);
       }
     } catch (error) {
-      console.error("Error adding user:", error);
+      console.error("Error linking player:", error);
     }
   };
 
-  const handleUpdateUser = async (userId: string, updates: Partial<User>) => {
+  const handleUnlinkPlayer = async (userId: string) => {
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({
+          playerId: null,
+        }),
       });
 
       if (response.ok) {
-        setEditingUser(null);
         fetchUsers();
       }
     } catch (error) {
-      console.error("Error updating user:", error);
+      console.error("Error unlinking player:", error);
     }
   };
 
@@ -93,13 +120,10 @@ export default function UsersPage() {
       <div>
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add User
-          </button>
+          <p className="text-sm text-gray-600">
+            Users are created through sign-up. You can link user accounts to
+            players.
+          </p>
         </div>
 
         {/* Search */}
@@ -175,12 +199,26 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => setEditingUser(user)}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
+                    {user.player ? (
+                      <button
+                        onClick={() => handleUnlinkPlayer(user.id)}
+                        className="text-red-600 hover:text-red-900 mr-3"
+                        title="Unlink player"
+                      >
+                        <Unlink className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingUser(user);
+                          setShowLinkModal(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        title="Link to player"
+                      >
+                        <Link className="w-4 h-4" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -188,63 +226,58 @@ export default function UsersPage() {
           </table>
         </div>
 
-        {/* Add User Form */}
-        {showAddForm && (
+        {/* Link Player Modal */}
+        {showLinkModal && editingUser && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
             <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Add New User
+                  Link User to Player
                 </h3>
-                <form action={handleAddUser}>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="isAdmin"
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">Admin</span>
-                    </label>
-                  </div>
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddForm(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                    >
-                      Add User
-                    </button>
-                  </div>
-                </form>
+                <p className="text-sm text-gray-600 mb-4">
+                  Link {editingUser.name} to a player account
+                </p>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Player
+                  </label>
+                  <select
+                    value={selectedPlayerId}
+                    onChange={(e) => setSelectedPlayerId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Choose a player...</option>
+                    {players.map((player) => (
+                      <option key={player.id} value={player.id}>
+                        {player.name} (Rating: {player.eloRating})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLinkModal(false);
+                      setEditingUser(null);
+                      setSelectedPlayerId("");
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleLinkPlayer(editingUser.id, selectedPlayerId)
+                    }
+                    disabled={!selectedPlayerId}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Link Player
+                  </button>
+                </div>
               </div>
             </div>
           </div>

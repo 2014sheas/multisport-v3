@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             eloRating: true,
+            teamMembers: {
+              select: {
+                teamId: true,
+              },
+            },
           },
         },
       },
@@ -40,59 +45,28 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ users });
+    // Format users to include teamId and player data
+    const formattedUsers = users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      rating: user.player?.eloRating || 1200,
+      teamId: user.player?.teamMembers[0]?.teamId || null,
+      player: user.player
+        ? {
+            id: user.player.id,
+            name: user.player.name,
+            eloRating: user.player.eloRating,
+          }
+        : null,
+    }));
+
+    return NextResponse.json({ users: formattedUsers });
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
-    if (!session.user.isAdmin) {
-      return NextResponse.json(
-        { error: "Admin privileges required" },
-        { status: 403 }
-      );
-    }
-
-    const formData = await request.formData();
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const isAdmin = formData.get("isAdmin") === "on";
-
-    if (!name || !email) {
-      return NextResponse.json(
-        { error: "Name and email are required" },
-        { status: 400 }
-      );
-    }
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        isAdmin,
-      },
-    });
-
-    return NextResponse.json({ user });
-  } catch (error) {
-    console.error("Error creating user:", error);
-    return NextResponse.json(
-      { error: "Failed to create user" },
       { status: 500 }
     );
   }

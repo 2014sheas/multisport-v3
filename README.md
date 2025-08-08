@@ -8,9 +8,9 @@ A family/friends Multisport Games tracking system with Keep-Trade-Cut voting and
 
 - **Keep-Trade-Cut Voting System**: Anonymous voting on 3 random players
 - **Elo Rating System**: KeepTradeCut-style ranking based on votes
-- **Public Rankings**: Real-time player rankings with rating history
-- **Admin User Management**: Add/edit participants and assign roles
-- **Draft Countdown**: Homepage with countdown to draft time
+- **Players**: Real-time player rankings with rating history
+- **Admin User Management**: View users and link accounts to players
+- **Event Countdown**: Homepage with countdown to event time
 - **Basic Events List**: Simple event management
 
 ### Coming Soon
@@ -83,7 +83,7 @@ The Google sign-in button will appear on the sign-in page once configured.
 1. Go to `/admin/users`
 2. Add participants manually
 3. Mark users as participants/captains as needed
-4. Set draft time at `/admin/draft-time`
+4. Set event time at `/admin/settings`
 
 ## Database Schema
 
@@ -96,7 +96,7 @@ The Google sign-in button will appear on the sign-in page once configured.
 - `draft_picks`: Draft pick tracking
 - `elo_history`: Rating change history
 - `votes`: Keep-Trade-Cut vote records
-- `settings`: System settings (draft time, etc.)
+- `settings`: System settings (event time, etc.)
 
 ## API Endpoints
 
@@ -104,33 +104,35 @@ The Google sign-in button will appear on the sign-in page once configured.
 
 - `GET /api/players/random` - Get 3 random players for voting
 - `POST /api/vote` - Submit a Keep-Trade-Cut vote
-- `GET /api/rankings` - Get player rankings
+- `GET /api/rankings` - Get players
 - `GET /api/events` - Get events list
-- `GET /api/draft-time` - Get draft countdown time
+- `GET /api/event-time` - Get event countdown time
+- `GET /api/teams` - Get team assignments
 
 ### Admin
 
 - `GET /api/admin/users` - Get all users
-- `POST /api/admin/users` - Create new user
+- `GET /api/admin/players` - Get players for admin
 - `PUT /api/admin/users/[id]` - Update user
-- `POST /api/draft-time` - Set draft time
+- `POST /api/event-time` - Set event time
+- `GET /api/admin/teams` - Get teams for admin
+- `PUT /api/admin/users/[id]` - Update user (including team assignment)
 
 ## Pages
 
 ### Public
 
-- `/` - Homepage with draft countdown
-- `/rankings` - Public player rankings
-- `/vote` - Keep-Trade-Cut voting interface
-- `/draft` - Draft interface (coming soon)
+- `/` - Homepage with event countdown
+- `/rankings` - Players with voting modal
 - `/events` - Events list
+- `/teams` - Team assignments
 
 ### Admin
 
 - `/admin/users` - User management
-- `/admin/draft-time` - Set draft countdown time
-- `/admin/captains` - Captain assignment (coming soon)
-- `/admin/draft-order` - Draft order management (coming soon)
+- `/admin/settings` - General settings (event time, etc.)
+- `/admin/teams` - Team management
+
 - `/admin/events` - Events management (coming soon)
 
 ## Elo System
@@ -155,7 +157,7 @@ The ranking system uses a KeepTradeCut-style Elo calculation:
 1. Set up Supabase database
 2. Add test participants
 3. Test voting system
-4. Set draft time
+4. Set event time
 5. Implement draft system
 6. Add captain authentication
 7. Deploy to Vercel

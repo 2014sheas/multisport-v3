@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // Elo calculation constants
-const K_FACTOR = 32;
-const BASE_RATING = 1200;
+const K_FACTOR = 100; // Increased for more dynamic ratings on 0-9999 scale
+const BASE_RATING = 5000; // Middle of the 0-9999 scale
+const RATING_SCALE = 2000; // Adjusted scale factor for 0-9999 range
 
 function calculateEloChange(
   winnerRating: number,
   loserRating: number
 ): { winnerChange: number; loserChange: number } {
   const expectedWinner =
-    1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
+    1 / (1 + Math.pow(10, (loserRating - winnerRating) / RATING_SCALE));
   const expectedLoser = 1 - expectedWinner;
 
   const winnerChange = Math.round(K_FACTOR * (1 - expectedWinner));
@@ -21,89 +22,129 @@ function calculateEloChange(
 
 export async function POST(request: NextRequest) {
   try {
-    const { voterSession, winnerId, loserId } = await request.json();
+    const { voterSession, keepId, tradeId, cutId } = await request.json();
 
-    if (!winnerId || !loserId || !voterSession) {
+    if (!keepId || !tradeId || !cutId || !voterSession) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
+    // Validate that all three players are different
+    if (keepId === tradeId || keepId === cutId || tradeId === cutId) {
+      return NextResponse.json(
+        { error: "All three players must be different" },
+        { status: 400 }
+      );
+    }
+
     // Get the current players
-    const [winner, loser] = await Promise.all([
+    const [keepPlayer, tradePlayer, cutPlayer] = await Promise.all([
       prisma.player.findUnique({
-        where: { id: winnerId },
+        where: { id: keepId },
         select: { id: true, eloRating: true, gamesPlayed: true },
       }),
       prisma.player.findUnique({
-        where: { id: loserId },
+        where: { id: tradeId },
+        select: { id: true, eloRating: true, gamesPlayed: true },
+      }),
+      prisma.player.findUnique({
+        where: { id: cutId },
         select: { id: true, eloRating: true, gamesPlayed: true },
       }),
     ]);
 
-    if (!winner || !loser) {
+    if (!keepPlayer || !tradePlayer || !cutPlayer) {
       return NextResponse.json({ error: "Players not found" }, { status: 404 });
     }
 
-    // Calculate Elo changes
-    const { winnerChange, loserChange } = calculateEloChange(
-      winner.eloRating,
-      loser.eloRating
-    );
+    // Calculate Elo changes for keep vs trade
+    const { winnerChange: keepTradeChange, loserChange: tradeKeepChange } =
+      calculateEloChange(keepPlayer.eloRating, tradePlayer.eloRating);
 
-    // Update both players in a transaction
-    const [updatedWinner, updatedLoser] = await prisma.$transaction([
+    // Calculate Elo changes for keep vs cut
+    const { winnerChange: keepCutChange, loserChange: cutKeepChange } =
+      calculateEloChange(keepPlayer.eloRating, cutPlayer.eloRating);
+
+    // Calculate Elo changes for trade vs cut
+    const { winnerChange: tradeCutChange, loserChange: cutTradeChange } =
+      calculateEloChange(tradePlayer.eloRating, cutPlayer.eloRating);
+
+    // Update all three players in a transaction
+    const [updatedKeep, updatedTrade, updatedCut] = await prisma.$transaction([
       prisma.player.update({
-        where: { id: winnerId },
+        where: { id: keepId },
         data: {
-          eloRating: winner.eloRating + winnerChange,
-          gamesPlayed: winner.gamesPlayed + 1,
+          eloRating: keepPlayer.eloRating + keepTradeChange + keepCutChange,
+          gamesPlayed: keepPlayer.gamesPlayed + 2, // Played against both trade and cut
         },
       }),
       prisma.player.update({
-        where: { id: loserId },
+        where: { id: tradeId },
         data: {
-          eloRating: loser.eloRating + loserChange,
-          gamesPlayed: loser.gamesPlayed + 1,
+          eloRating: tradePlayer.eloRating + tradeKeepChange + tradeCutChange,
+          gamesPlayed: tradePlayer.gamesPlayed + 2, // Played against both keep and cut
+        },
+      }),
+      prisma.player.update({
+        where: { id: cutId },
+        data: {
+          eloRating: cutPlayer.eloRating + cutKeepChange + cutTradeChange,
+          gamesPlayed: cutPlayer.gamesPlayed + 2, // Played against both keep and trade
         },
       }),
       // Record the vote
       prisma.vote.create({
         data: {
           voterSession,
-          winnerId,
-          loserId,
+          keepId,
+          tradeId,
+          cutId,
         },
       }),
-      // Record Elo history for both players
+      // Record Elo history for keep player
       prisma.eloHistory.create({
         data: {
-          playerId: winnerId,
-          oldRating: winner.eloRating,
-          newRating: winner.eloRating + winnerChange,
+          playerId: keepId,
+          oldRating: keepPlayer.eloRating,
+          newRating: keepPlayer.eloRating + keepTradeChange + keepCutChange,
         },
       }),
+      // Record Elo history for trade player
       prisma.eloHistory.create({
         data: {
-          playerId: loserId,
-          oldRating: loser.eloRating,
-          newRating: loser.eloRating + loserChange,
+          playerId: tradeId,
+          oldRating: tradePlayer.eloRating,
+          newRating: tradePlayer.eloRating + tradeKeepChange + tradeCutChange,
+        },
+      }),
+      // Record Elo history for cut player
+      prisma.eloHistory.create({
+        data: {
+          playerId: cutId,
+          oldRating: cutPlayer.eloRating,
+          newRating: cutPlayer.eloRating + cutKeepChange + cutTradeChange,
         },
       }),
     ]);
 
     return NextResponse.json({
       success: true,
-      winner: {
-        id: updatedWinner.id,
-        eloRating: updatedWinner.eloRating,
-        change: winnerChange,
+      keep: {
+        id: updatedKeep.id,
+        eloRating: updatedKeep.eloRating,
+        change: keepTradeChange + keepCutChange,
       },
-      loser: {
-        id: updatedLoser.id,
-        eloRating: updatedLoser.eloRating,
-        change: loserChange,
+      trade: {
+        id: updatedTrade.id,
+        eloRating: updatedTrade.eloRating,
+        change: tradeKeepChange + tradeCutChange,
+      },
+      cut: {
+        id: updatedCut.id,
+        eloRating: updatedCut.eloRating,
+        change: cutKeepChange + cutTradeChange,
       },
     });
   } catch (error) {

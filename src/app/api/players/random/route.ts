@@ -3,36 +3,35 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    // Get 3 random active players
-    const players = await prisma.player.findMany({
-      where: {
-        isActive: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        eloRating: true,
-      },
-      take: 3,
-      orderBy: {
-        // This is a simple random selection
-        // In production, you might want a more sophisticated approach
-        id: "asc",
-      },
-    });
+    // Get the total count of players
+    const totalPlayers = await prisma.player.count();
 
-    // If we don't have 3 players, return what we have
-    if (players.length < 3) {
+    if (totalPlayers < 3) {
+      // If we have fewer than 3 players, return all of them
+      const players = await prisma.player.findMany({
+        select: {
+          id: true,
+          name: true,
+          eloRating: true,
+          experience: true,
+        },
+      });
+
       return NextResponse.json({
         players,
         message: `Only ${players.length} players available`,
       });
     }
 
-    // Shuffle the players to make it more random
-    const shuffledPlayers = players.sort(() => Math.random() - 0.5);
+    // Get 3 random players using PostgreSQL's RANDOM() function
+    const players = await prisma.$queryRaw`
+      SELECT id, name, "eloRating", experience
+      FROM players 
+      ORDER BY RANDOM() 
+      LIMIT 3
+    `;
 
-    return NextResponse.json({ players: shuffledPlayers });
+    return NextResponse.json({ players });
   } catch (error) {
     console.error("Error fetching random players:", error);
     return NextResponse.json(

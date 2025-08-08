@@ -10,19 +10,19 @@ export default function HomePage() {
     minutes: number;
     seconds: number;
   } | null>(null);
-  const [draftTime, setDraftTime] = useState<Date | null>(null);
+  const [eventTime, setEventTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    // Fetch draft time from API
-    fetchDraftTime();
+    // Fetch event time from API
+    fetchEventTime();
   }, []);
 
   useEffect(() => {
-    if (!draftTime) return;
+    if (!eventTime) return;
 
     const timer = setInterval(() => {
       const now = new Date().getTime();
-      const distance = draftTime.getTime() - now;
+      const distance = eventTime.getTime() - now;
 
       if (distance < 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -40,32 +40,32 @@ export default function HomePage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [draftTime]);
+  }, [eventTime]);
 
-  const fetchDraftTime = async () => {
+  const fetchEventTime = async () => {
     try {
-      const response = await fetch("/api/draft-time");
+      const response = await fetch("/api/event-time");
       const data = await response.json();
-      if (data.draftTime) {
-        setDraftTime(new Date(data.draftTime));
+      if (data.eventTime) {
+        setEventTime(new Date(data.eventTime));
       } else {
-        // Default to tomorrow 8 PM if no draft time set
+        // Default to tomorrow 8 PM if no event time set
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(20, 0, 0, 0);
-        setDraftTime(tomorrow);
+        setEventTime(tomorrow);
       }
     } catch (error) {
-      console.error("Error fetching draft time:", error);
+      console.error("Error fetching event time:", error);
       // Default fallback
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(20, 0, 0, 0);
-      setDraftTime(tomorrow);
+      setEventTime(tomorrow);
     }
   };
 
-  const formatDraftTime = (date: Date) => {
+  const formatEventTime = (date: Date) => {
     return date.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -90,14 +90,16 @@ export default function HomePage() {
       <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 mb-8 text-center">
         <div className="flex items-center justify-center mb-4">
           <Clock className="w-8 h-8 text-blue-600 mr-3" />
-          <h2 className="text-2xl font-bold text-gray-900">Draft Countdown</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Multisport Countdown
+          </h2>
         </div>
 
-        {draftTime && (
+        {eventTime && (
           <div className="mb-6">
-            <p className="text-gray-600 mb-2">Draft starts on:</p>
+            <p className="text-gray-600 mb-2">The games start on:</p>
             <p className="text-lg font-semibold text-gray-900">
-              {formatDraftTime(draftTime)}
+              {formatEventTime(eventTime)}
             </p>
           </div>
         )}
@@ -133,20 +135,18 @@ export default function HomePage() {
       </div>
 
       {/* Quick Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6 text-center">
           <Users className="w-12 h-12 text-green-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Player Rankings
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Players</h3>
           <p className="text-gray-600 mb-4">
-            Check out the current player rankings
+            Check out all of the participants
           </p>
           <a
             href="/rankings"
             className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
           >
-            View Rankings
+            View Players
           </a>
         </div>
 
@@ -154,7 +154,7 @@ export default function HomePage() {
           <Calendar className="w-12 h-12 text-purple-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Events</h3>
           <p className="text-gray-600 mb-4">
-            See all the exciting events planned
+            See all scheduled events and results
           </p>
           <a
             href="/events"
@@ -165,47 +165,26 @@ export default function HomePage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <Clock className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Vote on Players
-          </h3>
-          <p className="text-gray-600 mb-4">
-            Help establish player rankings by voting
-          </p>
+          <Users className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Teams</h3>
+          <p className="text-gray-600 mb-4">View team rosters and captains</p>
           <a
-            href="/vote"
-            className="inline-block bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors"
+            href="/teams"
+            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
           >
-            Start Voting
-          </a>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <Clock className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Draft Room
-          </h3>
-          <p className="text-gray-600 mb-4">
-            The draft interface will be available soon
-          </p>
-          <a
-            href="/draft"
-            className="inline-block bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed"
-          >
-            Coming Soon
+            View Teams
           </a>
         </div>
       </div>
 
-      {/* Pre-Draft Message */}
+      {/* Pre-Event Message */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
         <h3 className="text-lg font-semibold text-yellow-800 mb-2">
           🏆 Get Ready!
         </h3>
         <p className="text-yellow-700">
-          The draft is approaching! Make sure to check the player rankings and
-          start thinking about your strategy. Team captains will be able to
-          draft their teams when the countdown reaches zero.
+          The event is approaching! Make sure to check the team rosters and
+          start thinking about your strategy.
         </p>
       </div>
     </div>

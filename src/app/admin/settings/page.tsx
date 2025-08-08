@@ -1,38 +1,38 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Save } from "lucide-react";
+import { Settings, Save, Calendar, Clock } from "lucide-react";
 
-export default function DraftTimePage() {
-  const [draftTime, setDraftTime] = useState<string>("");
+export default function SettingsPage() {
+  const [eventTime, setEventTime] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
-    fetchDraftTime();
+    fetchEventTime();
   }, []);
 
-  const fetchDraftTime = async () => {
+  const fetchEventTime = async () => {
     try {
-      const response = await fetch("/api/draft-time");
+      const response = await fetch("/api/event-time");
       const data = await response.json();
-      if (data.draftTime) {
+      if (data.eventTime) {
         // Convert to local datetime-local format
-        const date = new Date(data.draftTime);
+        const date = new Date(data.eventTime);
         const localDateTime = date.toISOString().slice(0, 16);
-        setDraftTime(localDateTime);
+        setEventTime(localDateTime);
       }
     } catch (error) {
-      console.error("Error fetching draft time:", error);
+      console.error("Error fetching event time:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
-    if (!draftTime) {
-      setMessage("Please select a draft time");
+    if (!eventTime) {
+      setMessage("Please select an event time");
       return;
     }
 
@@ -40,25 +40,25 @@ export default function DraftTimePage() {
     setMessage("");
 
     try {
-      const response = await fetch("/api/draft-time", {
+      const response = await fetch("/api/event-time", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          draftTime: new Date(draftTime).toISOString(),
+          eventTime: new Date(eventTime).toISOString(),
         }),
       });
 
       if (response.ok) {
-        setMessage("Draft time updated successfully!");
+        setMessage("Event time updated successfully!");
         setTimeout(() => setMessage(""), 3000);
       } else {
-        setMessage("Failed to update draft time");
+        setMessage("Failed to update event time");
       }
     } catch (error) {
-      console.error("Error updating draft time:", error);
-      setMessage("Failed to update draft time");
+      console.error("Error updating event time:", error);
+      setMessage("Failed to update event time");
     } finally {
       setSaving(false);
     }
@@ -75,30 +75,28 @@ export default function DraftTimePage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center mb-6">
-        <Clock className="w-6 h-6 text-blue-600 mr-3" />
-        <h1 className="text-2xl font-bold text-gray-900">
-          Draft Time Settings
-        </h1>
+        <Settings className="w-6 h-6 text-blue-600 mr-3" />
+        <h1 className="text-2xl font-bold text-gray-900">General Settings</h1>
       </div>
 
       <div className="bg-white shadow-md rounded-lg p-6">
         <div className="mb-6">
           <label
-            htmlFor="draftTime"
+            htmlFor="eventTime"
             className="block text-sm font-medium text-gray-700 mb-2"
           >
-            Draft Start Time
+            Multisport Start Time
           </label>
           <input
             type="datetime-local"
-            id="draftTime"
-            value={draftTime}
-            onChange={(e) => setDraftTime(e.target.value)}
+            id="eventTime"
+            value={eventTime}
+            onChange={(e) => setEventTime(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
           <p className="mt-2 text-sm text-gray-600">
-            Set when the draft will begin. This will be displayed as a countdown
-            on the homepage.
+            Set when the main event will begin. This will be displayed as a
+            countdown on the homepage.
           </p>
         </div>
 
@@ -121,19 +119,19 @@ export default function DraftTimePage() {
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50"
           >
             <Save className="w-4 h-4 mr-2" />
-            {saving ? "Saving..." : "Save Draft Time"}
+            {saving ? "Saving..." : "Save Settings"}
           </button>
         </div>
       </div>
 
       {/* Preview Section */}
-      {draftTime && (
+      {eventTime && (
         <div className="mt-6 bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Preview</h3>
           <p className="text-gray-600">
-            Draft will start on:{" "}
+            Event will start on:{" "}
             <span className="font-semibold">
-              {new Date(draftTime).toLocaleDateString("en-US", {
+              {new Date(eventTime).toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",
                 month: "long",

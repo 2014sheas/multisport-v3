@@ -54,9 +54,8 @@ export const config = {
     "/admin/:path*",
     "/api/admin/:path*",
     "/auth/:path*",
-    "/draft/:path*",
-    "/vote/:path*",
     "/rankings/:path*",
     "/events/:path*",
+    "/teams/:path*",
   ],
 };
