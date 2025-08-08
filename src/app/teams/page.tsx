@@ -7,6 +7,7 @@ interface Team {
   id: string;
   name: string;
   color: string;
+  averageRating: number;
   captain?: {
     id: string;
     name: string;
@@ -54,7 +55,6 @@ export default function TeamsPage() {
           <Trophy className="w-8 h-8 text-blue-600 mr-3" />
           <h1 className="text-3xl font-bold text-gray-900">Teams</h1>
         </div>
-        <p className="text-gray-600">Current team assignments for the event</p>
       </div>
 
       {teams.length === 0 ? (
@@ -79,9 +79,12 @@ export default function TeamsPage() {
                 <h3 className="text-lg font-semibold text-gray-900">
                   {team.name}
                 </h3>
-                <span className="text-sm text-gray-500">
-                  {team.members.length} players
-                </span>
+                <div className="text-right">
+                  <div className="text-sm text-gray-500">Avg Rating</div>
+                  <div className="text-lg font-bold text-blue-600">
+                    {team.averageRating}
+                  </div>
+                </div>
               </div>
 
               {team.members.length === 0 ? (

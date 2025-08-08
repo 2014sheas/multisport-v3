@@ -183,8 +183,8 @@ export default function HomePage() {
           🏆 Get Ready!
         </h3>
         <p className="text-yellow-700">
-          The event is approaching! Make sure to check the team rosters and
-          start thinking about your strategy.
+          The first event is approaching! Make sure to check the team rosters
+          and start thinking about your strategy.
         </p>
       </div>
     </div>

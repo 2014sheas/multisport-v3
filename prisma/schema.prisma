@@ -27,23 +27,23 @@ model User {
 }
 
 model Player {
-  id           String       @id @default(cuid())
-  name         String
-  eloRating    Int          @default(5000)
-  gamesPlayed  Int          @default(0)
-  experience   Int          @default(0)
-  wins         Int          @default(0)
-  isActive     Boolean      @default(true)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  draftPicks   DraftPick[]
-  eloHistory   EloHistory[]
-  teamMembers  TeamMember[]
-  user         User?
-  votesAsKeep  Vote[]       @relation("VoteKeep")
-  votesAsTrade Vote[]       @relation("VoteTrade")
-  votesAsCut   Vote[]       @relation("VoteCut")
-  captainedTeams Team[]     @relation("TeamCaptain")
+  id             String       @id @default(cuid())
+  name           String
+  eloRating      Int          @default(5000)
+  gamesPlayed    Int          @default(0)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  experience     Int          @default(0)
+  wins           Int          @default(0)
+  draftPicks     DraftPick[]
+  eloHistory     EloHistory[]
+  teamMembers    TeamMember[]
+  captainedTeams Team[]       @relation("TeamCaptain")
+  user           User?
+  votesAsCut     Vote[]       @relation("VoteCut")
+  votesAsKeep    Vote[]       @relation("VoteKeep")
+  votesAsTrade   Vote[]       @relation("VoteTrade")
 
   @@map("players")
 }
@@ -55,6 +55,7 @@ model Team {
   eloRating  Int          @default(1200)
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
+  color      String       @default("#3B82F6")
   draftPicks DraftPick[]
   members    TeamMember[]
   captain    Player?      @relation("TeamCaptain", fields: [captainId], references: [id])
@@ -110,13 +111,13 @@ model EloHistory {
 model Vote {
   id           String   @id @default(cuid())
   voterSession String
-  keepId       String   // The best player (keep)
-  tradeId      String   // The middle player (trade)
-  cutId        String   // The worst player (cut)
   timestamp    DateTime @default(now())
+  cutId        String
+  keepId       String
+  tradeId      String
+  cutPlayer    Player   @relation("VoteCut", fields: [cutId], references: [id])
   keepPlayer   Player   @relation("VoteKeep", fields: [keepId], references: [id])
   tradePlayer  Player   @relation("VoteTrade", fields: [tradeId], references: [id])
-  cutPlayer    Player   @relation("VoteCut", fields: [cutId], references: [id])
 
   @@map("votes")
 }

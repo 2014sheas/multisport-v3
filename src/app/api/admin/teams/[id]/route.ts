@@ -44,6 +44,38 @@ export async function PUT(
       return NextResponse.json({ team });
     }
 
+    // Handle team color update
+    if (updates.color !== undefined) {
+      const team = await prisma.team.update({
+        where: { id },
+        data: { color: updates.color },
+      });
+
+      return NextResponse.json({ team });
+    }
+
+    // Handle team name and color update together
+    if (updates.name !== undefined && updates.color !== undefined) {
+      if (!updates.name.trim()) {
+        return NextResponse.json(
+          { error: "Team name is required" },
+          { status: 400 }
+        );
+      }
+
+      const updateData = {
+        name: updates.name.trim(),
+        color: updates.color,
+      };
+
+      const team = await prisma.team.update({
+        where: { id },
+        data: updateData,
+      });
+
+      return NextResponse.json({ team });
+    }
+
     // Handle captain assignment
     if (updates.captainId !== undefined) {
       // Verify the captain is a player on this team

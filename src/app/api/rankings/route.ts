@@ -3,29 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    // Get all players with their Elo history and captain status
+    // Get all players ordered by rating
     const players = await prisma.player.findMany({
       select: {
         id: true,
         name: true,
         eloRating: true,
-        experience: true,
-        eloHistory: {
-          select: {
-            oldRating: true,
-            newRating: true,
-            timestamp: true,
-          },
-          orderBy: {
-            timestamp: "asc",
-          },
-        },
-        captainedTeams: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
       orderBy: {
         eloRating: "desc",
@@ -35,38 +18,81 @@ export async function GET() {
     // Calculate trend (ranking change over past 24 hours)
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const playersWithTrend = players.map((player, currentIndex) => {
-      // Find the player's rating 24 hours ago
-      const history24HoursAgo = player.eloHistory.find(
-        (entry) => new Date(entry.timestamp) <= twentyFourHoursAgo
-      );
+    const playersWithTrend = await Promise.all(
+      players.map(async (player, currentIndex) => {
+        // Get Elo history for this player within the last 24 hours
+        const recentHistory = await prisma.eloHistory.findMany({
+          where: {
+            playerId: player.id,
+            timestamp: {
+              gte: twentyFourHoursAgo,
+            },
+          },
+          orderBy: {
+            timestamp: "desc",
+          },
+        });
 
-      let trend = 0; // 0 = no change, positive = improved, negative = declined
+        let trend = 0; // 0 = no change, positive = improved ranking, negative = declined ranking
 
-      if (history24HoursAgo) {
-        // Calculate what the ranking would have been 24 hours ago
-        const rating24HoursAgo = history24HoursAgo.newRating;
-        const playersWithHigherRating24HoursAgo = players.filter((p) => {
-          const pHistory24HoursAgo = p.eloHistory.find(
-            (entry) => new Date(entry.timestamp) <= twentyFourHoursAgo
-          );
-          return (
-            pHistory24HoursAgo &&
-            pHistory24HoursAgo.newRating > rating24HoursAgo
-          );
-        }).length;
+        if (recentHistory.length > 0) {
+          // Calculate the total rating change over the 24-hour period
+          const totalRatingChange = recentHistory.reduce((total, entry) => {
+            return total + (entry.newRating - entry.oldRating);
+          }, 0);
 
-        const rank24HoursAgo = playersWithHigherRating24HoursAgo + 1;
-        const currentRank = currentIndex + 1;
-        trend = rank24HoursAgo - currentRank; // Positive = improved ranking
-      }
+          // If rating increased, trend is positive (improved ranking)
+          // If rating decreased, trend is negative (declined ranking)
+          // Scale the trend based on the magnitude of the rating change
+          trend =
+            Math.sign(totalRatingChange) *
+            Math.min(Math.abs(totalRatingChange) / 100, 5);
+        }
 
-      return {
-        ...player,
-        rank: currentIndex + 1,
-        trend,
-      };
-    });
+        // Get captain status
+        const captainedTeams = await prisma.team.findMany({
+          where: {
+            captainId: player.id,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+
+        // Get team membership
+        const teamMembership = await prisma.teamMember.findFirst({
+          where: {
+            playerId: player.id,
+          },
+        });
+
+        // Get team info if player is on a team
+        let teamInfo = null;
+        if (teamMembership) {
+          const team = await prisma.team.findUnique({
+            where: { id: teamMembership.teamId },
+            select: {
+              id: true,
+              name: true,
+              color: true,
+            },
+          });
+          teamInfo = team;
+        }
+
+        return {
+          id: player.id,
+          name: player.name,
+          eloRating: player.eloRating,
+          experience: 0, // Temporary fix
+          rank: currentIndex + 1,
+          trend: Math.round(trend),
+          captainedTeams,
+          team: teamInfo,
+        };
+      })
+    );
 
     return NextResponse.json({ players: playersWithTrend });
   } catch (error) {

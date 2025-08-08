@@ -26,6 +26,11 @@ interface Player {
     id: string;
     name: string;
   }>;
+  team: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
   eloHistory: Array<{
     oldRating: number;
     newRating: number;
@@ -34,6 +39,25 @@ interface Player {
 }
 
 type VoteSelection = "keep" | "trade" | "cut";
+
+// Fallback colors for teams that don't have colors set in the database
+const fallbackTeamColors: Record<string, string> = {
+  "Team Alpha": "#EF4444", // Red
+  "Team Beta": "#3B82F6", // Blue
+  "Team Gamma": "#10B981", // Green
+  "Team Delta": "#F59E0B", // Yellow
+  "Team Echo": "#8B5CF6", // Purple
+  "Team Foxtrot": "#F97316", // Orange
+  "Team Golf": "#06B6D4", // Cyan
+  "Team Hotel": "#EC4899", // Pink
+};
+
+const getTeamColor = (
+  team: { name: string; color?: string } | null
+): string => {
+  if (!team) return "#6B7280"; // Gray for free agents
+  return team.color || fallbackTeamColors[team.name] || "#3B82F6"; // Use DB color, fallback, or default blue
+};
 
 export default function RankingsPage() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -273,7 +297,7 @@ export default function RankingsPage() {
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
           <Vote className="w-4 h-4 mr-2" />
-          Vote on Players
+          Rank Players
         </button>
       </div>
 
@@ -284,7 +308,8 @@ export default function RankingsPage() {
             <div className="col-span-3">Player</div>
             <div className="col-span-2">Value</div>
             <div className="col-span-2">Experience</div>
-            <div className="col-span-4">24h Trend</div>
+            <div className="col-span-2">Team</div>
+            <div className="col-span-2">24h Trend</div>
           </div>
         </div>
 
@@ -292,7 +317,17 @@ export default function RankingsPage() {
           {players.map((player, index) => (
             <div
               key={player.id}
-              className="px-6 py-4 hover:bg-gray-50 transition-colors"
+              className={`px-6 py-4 hover:bg-gray-50 transition-colors ${
+                player.team ? "border-l-4" : ""
+              }`}
+              style={{
+                borderLeftColor: player.team
+                  ? getTeamColor(player.team)
+                  : undefined,
+                backgroundColor: player.team
+                  ? `${getTeamColor(player.team)}10`
+                  : undefined,
+              }}
             >
               <div className="grid grid-cols-12 gap-4 items-center">
                 <div className="col-span-1">
@@ -340,7 +375,23 @@ export default function RankingsPage() {
                   </span>
                 </div>
 
-                <div className="col-span-4">
+                <div className="col-span-2">
+                  {player.team ? (
+                    <span
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: `${getTeamColor(player.team)}20`,
+                        color: getTeamColor(player.team),
+                      }}
+                    >
+                      {player.team.name}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400">Free Agent</span>
+                  )}
+                </div>
+
+                <div className="col-span-2">
                   <TrendIndicator trend={player.trend} />
                 </div>
               </div>

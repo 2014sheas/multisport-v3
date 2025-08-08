@@ -26,10 +26,16 @@ interface Team {
   members: Player[];
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export default function AdminTeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string>("");
@@ -43,6 +49,7 @@ export default function AdminTeamsPage() {
   const [showEditTeamModal, setShowEditTeamModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [editTeamName, setEditTeamName] = useState<string>("");
+  const [editTeamColor, setEditTeamColor] = useState<string>("#3B82F6");
 
   useEffect(() => {
     fetchData();
@@ -193,6 +200,7 @@ export default function AdminTeamsPage() {
   const handleEditTeam = (team: Team) => {
     setEditingTeam(team);
     setEditTeamName(team.name);
+    setEditTeamColor(team.color);
     setShowEditTeamModal(true);
   };
 
@@ -206,7 +214,8 @@ export default function AdminTeamsPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/teams/${editingTeam.id}`, {
+      // Send name update first
+      const nameResponse = await fetch(`/api/admin/teams/${editingTeam.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -214,15 +223,36 @@ export default function AdminTeamsPage() {
         body: JSON.stringify({ name: editTeamName.trim() }),
       });
 
-      if (response.ok) {
+      // Send color update second
+      const colorResponse = await fetch(`/api/admin/teams/${editingTeam.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ color: editTeamColor }),
+      });
+
+      if (nameResponse.ok && colorResponse.ok) {
         setMessage("Team updated successfully!");
+
+        // Update the team in the local state instead of refetching all data
+        setTeams((prevTeams) =>
+          prevTeams.map((team) =>
+            team.id === editingTeam.id
+              ? { ...team, name: editTeamName.trim(), color: editTeamColor }
+              : team
+          )
+        );
+
         setShowEditTeamModal(false);
         setEditingTeam(null);
         setEditTeamName("");
+        setEditTeamColor("#3B82F6"); // Reset color
         setTimeout(() => setMessage(""), 3000);
-        fetchData();
       } else {
-        const errorData = await response.json();
+        const errorData = (await nameResponse.ok)
+          ? await colorResponse.json()
+          : await nameResponse.json();
         setMessage(errorData.error || "Failed to update team");
       }
     } catch (error) {
@@ -523,6 +553,26 @@ export default function AdminTeamsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Team Color
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="color"
+                      value={editTeamColor}
+                      onChange={(e) => setEditTeamColor(e.target.value)}
+                      className="w-12 h-10 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <div
+                      className="w-8 h-8 rounded border border-gray-300"
+                      style={{ backgroundColor: editTeamColor }}
+                    ></div>
+                    <span className="text-sm text-gray-600">
+                      {editTeamColor}
+                    </span>
+                  </div>
+                </div>
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
@@ -530,6 +580,7 @@ export default function AdminTeamsPage() {
                       setShowEditTeamModal(false);
                       setEditingTeam(null);
                       setEditTeamName("");
+                      setEditTeamColor("#3B82F6"); // Reset color
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                   >
