@@ -21,7 +21,7 @@ export const authOptions = {
       async authorize(credentials) {
         console.error("🔐 Auth: authorize called");
         console.error("  Credentials:", credentials ? "provided" : "missing");
-        
+
         if (!credentials?.email || !credentials?.password) {
           console.error("❌ Auth: Missing credentials");
           return null;
