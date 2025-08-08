@@ -221,7 +221,7 @@ export default function AdminPlayersPage() {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="mb-4">
@@ -237,7 +237,7 @@ export default function AdminPlayersPage() {
                           eloRating: parseInt(e.target.value) || 1200,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="mb-4">
@@ -253,7 +253,7 @@ export default function AdminPlayersPage() {
                           experience: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="mb-4">
@@ -269,7 +269,7 @@ export default function AdminPlayersPage() {
                           wins: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="flex justify-end space-x-3">
@@ -316,7 +316,7 @@ export default function AdminPlayersPage() {
                         })
                       }
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="mb-4">
@@ -332,7 +332,7 @@ export default function AdminPlayersPage() {
                           eloRating: parseInt(e.target.value) || 1200,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="mb-4">
@@ -348,7 +348,7 @@ export default function AdminPlayersPage() {
                           experience: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="mb-4">
@@ -364,7 +364,7 @@ export default function AdminPlayersPage() {
                           wins: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="flex justify-end space-x-3">

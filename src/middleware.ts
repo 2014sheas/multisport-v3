@@ -42,8 +42,8 @@ export default withAuth(
           return !!token && token.isAdmin === true;
         }
 
-        // For other routes, just need authentication
-        return !!token;
+        // For all other routes (rankings, events, teams, etc.), allow public access
+        return true;
       },
     },
   }
@@ -54,8 +54,9 @@ export const config = {
     "/admin/:path*",
     "/api/admin/:path*",
     "/auth/:path*",
-    "/rankings/:path*",
-    "/events/:path*",
-    "/teams/:path*",
+    // Removed the following routes from requiring authentication:
+    // "/rankings/:path*",
+    // "/events/:path*",
+    // "/teams/:path*",
   ],
 };

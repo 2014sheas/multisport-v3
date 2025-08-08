@@ -69,6 +69,14 @@ async function main() {
       await prisma.event.create({
         data: {
           name: "Sample Event",
+          abbreviation: "SE",
+          symbol: "🏆",
+          eventType: "TOURNAMENT",
+          status: "UPCOMING",
+          startTime: new Date("2024-12-01T10:00:00Z"),
+          location: "Main Arena",
+          points: [100, 75, 50, 25],
+          finalStandings: undefined,
         },
       });
       console.log("✅ Created sample event");

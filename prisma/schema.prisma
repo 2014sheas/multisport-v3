@@ -75,12 +75,31 @@ model TeamMember {
 }
 
 model Event {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  abbreviation   String
+  symbol         String   // emoji
+  eventType      EventType
+  status         EventStatus @default(UPCOMING)
+  startTime      DateTime
+  location       String
+  points         Int[]    // array of points for each place
+  finalStandings Json?    // JSON array of team IDs in final order
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@map("events")
+}
+
+enum EventType {
+  TOURNAMENT
+  SCORED
+}
+
+enum EventStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
 }
 
 model DraftPick {

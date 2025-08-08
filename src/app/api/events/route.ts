@@ -7,9 +7,19 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        abbreviation: true,
+        symbol: true,
+        eventType: true,
+        status: true,
+        startTime: true,
+        location: true,
+        points: true,
+        finalStandings: true,
+        createdAt: true,
+        updatedAt: true,
       },
       orderBy: {
-        name: "asc",
+        startTime: "asc",
       },
     });
 
