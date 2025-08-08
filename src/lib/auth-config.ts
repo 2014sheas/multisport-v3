@@ -95,6 +95,7 @@ export const authOptions = {
       console.error("🔄 JWT Callback:", {
         hasUser: !!user,
         hasAccount: !!account,
+        provider: account?.provider,
       });
 
       if (user) {
@@ -104,14 +105,27 @@ export const authOptions = {
         // If this is a Google OAuth sign-in, ensure email is verified
         if (account?.provider === "google") {
           try {
-            await prisma.user.update({
+            // Use upsert to create or update the user
+            const updatedUser = await prisma.user.upsert({
               where: { email: user.email },
-              data: { emailVerified: true },
+              update: { 
+                emailVerified: true,
+                name: user.name || user.email,
+              },
+              create: {
+                email: user.email,
+                name: user.name || user.email,
+                emailVerified: true,
+                isAdmin: false, // Default to non-admin
+              },
             });
+            
+            console.error("✅ Google OAuth user updated/created:", updatedUser.email);
             token.emailVerified = true;
+            token.isAdmin = updatedUser.isAdmin;
           } catch (error) {
-            // User might not exist yet, that's okay
-            console.error("Error updating user email verification:", error);
+            console.error("❌ Error handling Google OAuth user:", error);
+            // Don't fail the auth, just log the error
           }
         }
       }
@@ -134,8 +148,28 @@ export const authOptions = {
       console.error("🔄 SignIn Callback:", {
         hasUser: !!user,
         hasAccount: !!account,
+        provider: account?.provider,
+        userEmail: user?.email,
       });
-      // Allow all sign-ins for now
+
+      // For Google OAuth, always allow sign-in
+      if (account?.provider === "google") {
+        console.error("✅ Google OAuth sign-in allowed");
+        return true;
+      }
+
+      // For credentials, check if email is verified
+      if (account?.provider === "credentials") {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+        });
+        
+        if (dbUser && !dbUser.emailVerified) {
+          console.error("❌ Credentials sign-in blocked: email not verified");
+          return false;
+        }
+      }
+
       return true;
     },
   },
