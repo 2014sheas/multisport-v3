@@ -19,16 +19,11 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.error("🔐 Auth: authorize called");
-        console.error("  Credentials:", credentials ? "provided" : "missing");
-
         if (!credentials?.email || !credentials?.password) {
-          console.error("❌ Auth: Missing credentials");
           return null;
         }
 
         try {
-          console.error("🔍 Auth: Looking up user:", credentials.email);
           const user = await prisma.user.findUnique({
             where: {
               email: credentials.email,
@@ -36,30 +31,25 @@ export const authOptions = {
           });
 
           if (!user || !user.password) {
-            console.error("❌ Auth: User not found or no password");
             return null;
           }
 
-          console.error("🔐 Auth: Checking password");
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           );
 
           if (!isPasswordValid) {
-            console.error("❌ Auth: Invalid password");
             return null;
           }
 
           // Check if email is verified
           if (!user.emailVerified) {
-            console.error("❌ Auth: Email not verified");
             throw new Error(
               "Email not verified. Please check your email and click the verification link."
             );
           }
 
-          console.error("✅ Auth: User authenticated successfully");
           return {
             id: user.id,
             email: user.email,
@@ -68,7 +58,6 @@ export const authOptions = {
             emailVerified: user.emailVerified,
           };
         } catch (error) {
-          console.error("❌ Auth error:", error);
           return null;
         }
       },
@@ -92,12 +81,6 @@ export const authOptions = {
       user: any;
       account: any;
     }) {
-      console.error("🔄 JWT Callback:", {
-        hasUser: !!user,
-        hasAccount: !!account,
-        provider: account?.provider,
-      });
-
       if (user) {
         token.isAdmin = user.isAdmin;
         token.emailVerified = user.emailVerified;
@@ -108,7 +91,7 @@ export const authOptions = {
             // Use upsert to create or update the user
             const updatedUser = await prisma.user.upsert({
               where: { email: user.email },
-              update: { 
+              update: {
                 emailVerified: true,
                 name: user.name || user.email,
               },
@@ -119,24 +102,18 @@ export const authOptions = {
                 isAdmin: false, // Default to non-admin
               },
             });
-            
-            console.error("✅ Google OAuth user updated/created:", updatedUser.email);
+
             token.emailVerified = true;
             token.isAdmin = updatedUser.isAdmin;
           } catch (error) {
-            console.error("❌ Error handling Google OAuth user:", error);
             // Don't fail the auth, just log the error
+            console.error("Error handling Google OAuth user:", error);
           }
         }
       }
       return token;
     },
     async session({ session, token }: { session: any; token: any }) {
-      console.error("🔄 Session Callback:", {
-        hasSession: !!session,
-        hasToken: !!token,
-      });
-
       if (session.user) {
         session.user.id = token.sub;
         session.user.isAdmin = token.isAdmin;
@@ -145,16 +122,8 @@ export const authOptions = {
       return session;
     },
     async signIn({ user, account }: { user: any; account: any }) {
-      console.error("🔄 SignIn Callback:", {
-        hasUser: !!user,
-        hasAccount: !!account,
-        provider: account?.provider,
-        userEmail: user?.email,
-      });
-
       // For Google OAuth, always allow sign-in
       if (account?.provider === "google") {
-        console.error("✅ Google OAuth sign-in allowed");
         return true;
       }
 
@@ -163,9 +132,8 @@ export const authOptions = {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email },
         });
-        
+
         if (dbUser && !dbUser.emailVerified) {
-          console.error("❌ Credentials sign-in blocked: email not verified");
           return false;
         }
       }
@@ -186,18 +154,6 @@ export const authOptions = {
         path: "/",
         secure: process.env.NODE_ENV === "production",
       },
-    },
-  },
-  // Add logging for all events
-  events: {
-    async signIn(message: any) {
-      console.error("📝 Auth Event: signIn", message);
-    },
-    async signOut(message: any) {
-      console.error("📝 Auth Event: signOut", message);
-    },
-    async session(message: any) {
-      console.error("📝 Auth Event: session", message);
     },
   },
 };
