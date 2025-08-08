@@ -51,7 +51,8 @@ export async function GET(request: NextRequest) {
     const formattedTeams = teams.map((team) => ({
       id: team.id,
       name: team.name,
-      color: team.color, // Use the actual color from the database
+      color: team.color,
+      abbreviation: team.abbreviation,
       captain: team.captain
         ? {
             id: team.captain.id,

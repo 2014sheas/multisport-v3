@@ -30,6 +30,7 @@ interface Player {
     id: string;
     name: string;
     color: string;
+    abbreviation?: string;
   } | null;
   eloHistory: Array<{
     oldRating: number;
@@ -57,6 +58,30 @@ const getTeamColor = (
 ): string => {
   if (!team) return "#6B7280"; // Gray for free agents
   return team.color || fallbackTeamColors[team.name] || "#3B82F6"; // Use DB color, fallback, or default blue
+};
+
+const getTeamAbbreviation = (
+  team: { name: string; abbreviation?: string } | null
+): string => {
+  if (!team) return "FA"; // Free Agent
+
+  // If abbreviation exists, use it
+  if (team.abbreviation) {
+    return team.abbreviation;
+  }
+
+  // Generate abbreviation from team name
+  const words = team.name.split(" ");
+  if (words.length === 1) {
+    // Single word team name - take first 3 letters
+    return team.name.substring(0, 3).toUpperCase();
+  } else {
+    // Multiple words - take first letter of each word
+    return words
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase();
+  }
 };
 
 export default function RankingsPage() {
@@ -256,22 +281,23 @@ export default function RankingsPage() {
     if (trend === 0) {
       return (
         <div className="flex items-center text-gray-500">
-          <Minus className="w-4 h-4 mr-1" />
-          <span className="text-sm">No change</span>
+          <Minus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+          <span className="text-xs sm:text-sm hidden sm:inline">No change</span>
+          <span className="text-xs sm:hidden">-</span>
         </div>
       );
     } else if (trend > 0) {
       return (
         <div className="flex items-center text-green-600">
-          <TrendingUp className="w-4 h-4 mr-1" />
-          <span className="text-sm">+{trend}</span>
+          <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+          <span className="text-xs sm:text-sm">+{trend}</span>
         </div>
       );
     } else {
       return (
         <div className="flex items-center text-red-600">
-          <TrendingDown className="w-4 h-4 mr-1" />
-          <span className="text-sm">{trend}</span>
+          <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+          <span className="text-xs sm:text-sm">{trend}</span>
         </div>
       );
     }
@@ -288,13 +314,15 @@ export default function RankingsPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Players</h1>
-        <p className="text-gray-600 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+          Players
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600 mb-6">
           Current Values and performance history
         </p>
         <button
           onClick={startVoting}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base"
         >
           <Vote className="w-4 h-4 mr-2" />
           Rank Players
@@ -303,13 +331,15 @@ export default function RankingsPage() {
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-500 uppercase tracking-wide">
-            <div className="col-span-1">Rank</div>
-            <div className="col-span-3">Player</div>
-            <div className="col-span-2">Value</div>
-            <div className="col-span-2">Experience</div>
-            <div className="col-span-2">Team</div>
-            <div className="col-span-2">24h Trend</div>
+          <div className="flex items-center text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">
+            <div className="w-12 sm:w-16 flex-shrink-0">Rank</div>
+            <div className="flex-1 min-w-0">Player</div>
+            <div className="w-20 flex-shrink-0 text-center hidden sm:block">
+              Experience
+            </div>
+            <div className="w-20 flex-shrink-0 text-center">Team</div>
+            <div className="w-16 flex-shrink-0 text-center">24h Trend</div>
+            <div className="w-16 sm:w-20 flex-shrink-0 text-center">Value</div>
           </div>
         </div>
 
@@ -317,7 +347,7 @@ export default function RankingsPage() {
           {players.map((player, index) => (
             <div
               key={player.id}
-              className={`px-6 py-4 hover:bg-gray-50 transition-colors ${
+              className={`py-4 hover:bg-gray-50 transition-colors ${
                 player.team ? "border-l-4" : ""
               }`}
               style={{
@@ -329,10 +359,10 @@ export default function RankingsPage() {
                   : undefined,
               }}
             >
-              <div className="grid grid-cols-12 gap-4 items-center">
-                <div className="col-span-1">
+              <div className="flex items-center px-6">
+                <div className="w-12 sm:w-16 flex-shrink-0">
                   <span
-                    className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
+                    className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-xs font-semibold ${
                       index < 3
                         ? "bg-yellow-100 text-yellow-800"
                         : "bg-gray-100 text-gray-800"
@@ -342,20 +372,20 @@ export default function RankingsPage() {
                   </span>
                 </div>
 
-                <div className="col-span-3">
+                <div className="flex-1 min-w-0 mr-4">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-sm font-bold text-blue-600">
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 hidden sm:flex">
+                      <span className="text-xs font-bold text-blue-600">
                         {player.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="font-medium text-gray-900">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <span className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                         {player.name}
                       </span>
                       {player.captainedTeams.length > 0 && (
                         <Star
-                          className="w-4 h-4 text-yellow-500 ml-1"
+                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 ml-1 flex-shrink-0"
                           fill="currentColor"
                         />
                       )}
@@ -363,36 +393,36 @@ export default function RankingsPage() {
                   </div>
                 </div>
 
-                <div className="col-span-2">
-                  <span className="text-lg font-semibold text-gray-900">
-                    {player.eloRating}
-                  </span>
-                </div>
-
-                <div className="col-span-2">
-                  <span className="text-sm text-gray-600">
+                <div className="w-20 flex-shrink-0 text-center hidden sm:block">
+                  <span className="text-xs sm:text-sm text-gray-600">
                     {formatExperience(player.experience)}
                   </span>
                 </div>
 
-                <div className="col-span-2">
+                <div className="w-20 flex-shrink-0 text-center">
                   {player.team ? (
                     <span
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      className="inline-flex items-center px-2 py-0.5 sm:px-2.5 rounded-full text-xs font-medium truncate"
                       style={{
                         backgroundColor: `${getTeamColor(player.team)}20`,
                         color: getTeamColor(player.team),
                       }}
                     >
-                      {player.team.name}
+                      {getTeamAbbreviation(player.team)}
                     </span>
                   ) : (
-                    <span className="text-sm text-gray-400">Free Agent</span>
+                    <span className="text-xs sm:text-sm text-gray-400">FA</span>
                   )}
                 </div>
 
-                <div className="col-span-2">
+                <div className="w-16 flex-shrink-0 text-center">
                   <TrendIndicator trend={player.trend} />
+                </div>
+
+                <div className="w-16 sm:w-20 flex-shrink-0 text-center">
+                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                    {player.eloRating}
+                  </span>
                 </div>
               </div>
             </div>
@@ -401,7 +431,7 @@ export default function RankingsPage() {
       </div>
 
       <div className="text-center mt-8">
-        <p className="text-sm text-gray-500">
+        <p className="text-xs sm:text-sm text-gray-500">
           Rankings are updated in real-time based on Keep-Trade-Cut votes
         </p>
       </div>
@@ -409,49 +439,49 @@ export default function RankingsPage() {
       {/* Voting Modal */}
       {showVoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="bg-white rounded-lg p-4 max-w-xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-gray-900">
                 Keep-Trade-Cut Vote
               </h3>
               <button
                 onClick={() => setShowVoteModal(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="mb-4">
-              <p className="text-gray-600 mb-2">
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 mb-1">
                 Select your choices for these three players:
               </p>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="flex items-center space-x-3 text-xs text-gray-600">
                 <div className="flex items-center">
                   <Heart
-                    className="w-4 h-4 text-green-600 mr-1"
+                    className="w-3 h-3 text-green-600 mr-1"
                     fill="currentColor"
                   />
                   <span>Keep (Best)</span>
                 </div>
                 <div className="flex items-center">
-                  <ArrowRight className="w-4 h-4 text-yellow-600 mr-1" />
+                  <ArrowRight className="w-3 h-3 text-yellow-600 mr-1" />
                   <span>Trade (Middle)</span>
                 </div>
                 <div className="flex items-center">
-                  <Trash2 className="w-4 h-4 text-red-600 mr-1" />
+                  <Trash2 className="w-3 h-3 text-red-600 mr-1" />
                   <span>Cut (Worst)</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4 mb-4">
+            <div className="space-y-2 mb-3">
               {votingPlayers.map((player) => {
                 const selection = voteSelections[player.id];
                 return (
                   <div
                     key={player.id}
-                    className={`p-4 rounded-lg border-2 transition-colors ${
+                    className={`p-3 rounded-lg border transition-colors ${
                       selection
                         ? selection === "keep"
                           ? "border-green-500 bg-green-50"
@@ -461,61 +491,63 @@ export default function RankingsPage() {
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <div className="text-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {player.name}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {formatExperience(player.experience)}
-                      </p>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          {player.name}
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          {formatExperience(player.experience)} •{" "}
+                          {player.eloRating} rating
+                        </p>
+                      </div>
+                      {selection && (
+                        <div className="flex items-center text-xs">
+                          {getSelectionIcon(selection)}
+                          <span className="ml-1 font-medium">
+                            {getSelectionLabel(selection)}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-1">
                       <button
                         onClick={() => handlePlayerSelection(player.id, "keep")}
-                        className={`flex flex-col items-center justify-center p-3 rounded-lg text-sm font-medium transition-colors ${
+                        className={`flex flex-col items-center justify-center p-2 rounded text-xs font-medium transition-colors ${
                           selection === "keep"
-                            ? "bg-green-100 text-green-700 border-2 border-green-500"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent"
+                            ? "bg-green-100 text-green-700 border border-green-500"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
                         }`}
                       >
-                        <Heart className="w-5 h-5 mb-1" />
+                        <Heart className="w-3 h-3 mb-0.5" />
                         <span>Keep</span>
                       </button>
                       <button
                         onClick={() =>
                           handlePlayerSelection(player.id, "trade")
                         }
-                        className={`flex flex-col items-center justify-center p-3 rounded-lg text-sm font-medium transition-colors ${
+                        className={`flex flex-col items-center justify-center p-2 rounded text-xs font-medium transition-colors ${
                           selection === "trade"
-                            ? "bg-yellow-100 text-yellow-700 border-2 border-yellow-500"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent"
+                            ? "bg-yellow-100 text-yellow-700 border border-yellow-500"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
                         }`}
                       >
-                        <ArrowRight className="w-5 h-5 mb-1" />
+                        <ArrowRight className="w-3 h-3 mb-0.5" />
                         <span>Trade</span>
                       </button>
                       <button
                         onClick={() => handlePlayerSelection(player.id, "cut")}
-                        className={`flex flex-col items-center justify-center p-3 rounded-lg text-sm font-medium transition-colors ${
+                        className={`flex flex-col items-center justify-center p-2 rounded text-xs font-medium transition-colors ${
                           selection === "cut"
-                            ? "bg-red-100 text-red-700 border-2 border-red-500"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent"
+                            ? "bg-red-100 text-red-700 border border-red-500"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
                         }`}
                       >
-                        <Trash2 className="w-5 h-5 mb-1" />
+                        <Trash2 className="w-3 h-3 mb-0.5" />
                         <span>Cut</span>
                       </button>
                     </div>
-
-                    {selection && (
-                      <div className="mt-3 flex items-center justify-center text-sm">
-                        {getSelectionIcon(selection)}
-                        <span className="ml-1 font-medium">
-                          Selected as: {getSelectionLabel(selection)}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -523,7 +555,7 @@ export default function RankingsPage() {
 
             {voteMessage && (
               <div
-                className={`mb-4 p-3 rounded-md ${
+                className={`mb-3 p-2 rounded text-xs ${
                   voteMessage.includes("successfully")
                     ? "bg-green-100 text-green-700"
                     : "bg-red-100 text-red-700"
@@ -533,17 +565,17 @@ export default function RankingsPage() {
               </div>
             )}
 
-            <div className="flex space-x-3">
+            <div className="flex space-x-2">
               <button
                 onClick={() => setShowVoteModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 onClick={submitVote}
                 disabled={voting || !canSubmitVote()}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {voting ? "Submitting..." : "Submit Vote"}
               </button>

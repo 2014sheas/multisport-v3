@@ -76,6 +76,7 @@ export async function GET() {
               id: true,
               name: true,
               color: true,
+              abbreviation: true,
             },
           });
           teamInfo = team;

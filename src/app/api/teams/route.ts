@@ -9,6 +9,7 @@ export async function GET() {
         name: true,
         captainId: true,
         color: true,
+        abbreviation: true,
       },
     });
 

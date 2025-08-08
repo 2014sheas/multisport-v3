@@ -54,6 +54,16 @@ export async function PUT(
       return NextResponse.json({ team });
     }
 
+    // Handle team abbreviation update
+    if (updates.abbreviation !== undefined) {
+      const team = await prisma.team.update({
+        where: { id },
+        data: { abbreviation: updates.abbreviation },
+      });
+
+      return NextResponse.json({ team });
+    }
+
     // Handle team name and color update together
     if (updates.name !== undefined && updates.color !== undefined) {
       if (!updates.name.trim()) {

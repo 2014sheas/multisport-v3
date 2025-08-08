@@ -16,6 +16,7 @@ interface Team {
   id: string;
   name: string;
   color: string;
+  abbreviation?: string;
   captain?: {
     id: string;
     name: string;
@@ -50,6 +51,7 @@ export default function AdminTeamsPage() {
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [editTeamName, setEditTeamName] = useState<string>("");
   const [editTeamColor, setEditTeamColor] = useState<string>("#3B82F6");
+  const [editTeamAbbreviation, setEditTeamAbbreviation] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -201,6 +203,7 @@ export default function AdminTeamsPage() {
     setEditingTeam(team);
     setEditTeamName(team.name);
     setEditTeamColor(team.color);
+    setEditTeamAbbreviation(team.abbreviation || "");
     setShowEditTeamModal(true);
   };
 
@@ -232,14 +235,33 @@ export default function AdminTeamsPage() {
         body: JSON.stringify({ color: editTeamColor }),
       });
 
-      if (nameResponse.ok && colorResponse.ok) {
+      // Send abbreviation update third
+      const abbreviationResponse = await fetch(
+        `/api/admin/teams/${editingTeam.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            abbreviation: editTeamAbbreviation.trim() || null,
+          }),
+        }
+      );
+
+      if (nameResponse.ok && colorResponse.ok && abbreviationResponse.ok) {
         setMessage("Team updated successfully!");
 
         // Update the team in the local state instead of refetching all data
         setTeams((prevTeams) =>
           prevTeams.map((team) =>
             team.id === editingTeam.id
-              ? { ...team, name: editTeamName.trim(), color: editTeamColor }
+              ? {
+                  ...team,
+                  name: editTeamName.trim(),
+                  color: editTeamColor,
+                  abbreviation: editTeamAbbreviation.trim() || undefined,
+                }
               : team
           )
         );
@@ -248,10 +270,13 @@ export default function AdminTeamsPage() {
         setEditingTeam(null);
         setEditTeamName("");
         setEditTeamColor("#3B82F6"); // Reset color
+        setEditTeamAbbreviation(""); // Reset abbreviation
         setTimeout(() => setMessage(""), 3000);
       } else {
         const errorData = (await nameResponse.ok)
-          ? await colorResponse.json()
+          ? (await colorResponse.ok)
+            ? await abbreviationResponse.json()
+            : await colorResponse.json()
           : await nameResponse.json();
         setMessage(errorData.error || "Failed to update team");
       }
@@ -319,6 +344,11 @@ export default function AdminTeamsPage() {
                         ? `${team.captain.name} (Rating: ${team.captain.eloRating})`
                         : "Not assigned"}
                     </p>
+                    {team.abbreviation && (
+                      <p className="text-xs text-gray-500">
+                        Abbreviation: {team.abbreviation}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-500">
@@ -573,6 +603,23 @@ export default function AdminTeamsPage() {
                     </span>
                   </div>
                 </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Team Abbreviation
+                  </label>
+                  <input
+                    type="text"
+                    value={editTeamAbbreviation}
+                    onChange={(e) => setEditTeamAbbreviation(e.target.value)}
+                    placeholder="e.g., ALP, TB, GAM"
+                    maxLength={5}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Short abbreviation for the team (max 5 characters). Leave
+                    empty to auto-generate.
+                  </p>
+                </div>
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
@@ -581,6 +628,7 @@ export default function AdminTeamsPage() {
                       setEditingTeam(null);
                       setEditTeamName("");
                       setEditTeamColor("#3B82F6"); // Reset color
+                      setEditTeamAbbreviation(""); // Reset abbreviation
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                   >

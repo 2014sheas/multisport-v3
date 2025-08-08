@@ -49,16 +49,17 @@ model Player {
 }
 
 model Team {
-  id         String       @id @default(cuid())
-  name       String
-  captainId  String?
-  eloRating  Int          @default(1200)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  color      String       @default("#3B82F6")
-  draftPicks DraftPick[]
-  members    TeamMember[]
-  captain    Player?      @relation("TeamCaptain", fields: [captainId], references: [id])
+  id           String       @id @default(cuid())
+  name         String
+  abbreviation String?
+  captainId    String?
+  eloRating    Int          @default(1200)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  color        String       @default("#3B82F6")
+  draftPicks   DraftPick[]
+  members      TeamMember[]
+  captain      Player?      @relation("TeamCaptain", fields: [captainId], references: [id])
 
   @@map("teams")
 }

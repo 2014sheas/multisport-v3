@@ -127,12 +127,12 @@ export default function EventsPage() {
       </div>
 
       {/* Event Status Summary */}
-      <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200 mb-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+          <h2 className="hidden sm:block text-xl font-semibold text-gray-900">
             Event Overview
           </h2>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
               {events.filter((e) => e.status === "UPCOMING").length} Upcoming
             </span>
