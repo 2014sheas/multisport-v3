@@ -11,7 +11,7 @@ async function loggedHandler(req: NextRequest) {
   console.error("  URL:", req.url);
   console.error("  User Agent:", req.headers.get("user-agent"));
   console.error("  Referer:", req.headers.get("referer"));
-
+  
   try {
     // Call the handler directly without wrapping
     const result = await handler(req);
@@ -29,4 +29,5 @@ async function loggedHandler(req: NextRequest) {
   }
 }
 
-export { loggedHandler as GET, loggedHandler as POST };
+// Export all HTTP methods that NextAuth might use
+export { loggedHandler as GET, loggedHandler as POST, loggedHandler as PUT, loggedHandler as DELETE };

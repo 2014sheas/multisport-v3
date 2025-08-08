@@ -21,7 +21,7 @@ export const authOptions = {
       async authorize(credentials) {
         console.error("🔐 Auth: authorize called");
         console.error("  Credentials:", credentials ? "provided" : "missing");
-
+        
         if (!credentials?.email || !credentials?.password) {
           console.error("❌ Auth: Missing credentials");
           return null;
@@ -139,7 +139,8 @@ export const authOptions = {
       return true;
     },
   },
-  debug: process.env.NODE_ENV === "development",
+  // Disable debug mode to prevent _log requests
+  debug: false,
   // Add these for better Vercel compatibility
   useSecureCookies: process.env.NODE_ENV === "production",
   cookies: {
