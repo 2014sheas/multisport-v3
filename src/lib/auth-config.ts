@@ -23,46 +23,55 @@ export const authOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email,
+            },
+          });
 
-        if (!user || !user.password) {
-          return null;
-        }
+          if (!user || !user.password) {
+            return null;
+          }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        // Check if email is verified
-        if (!user.emailVerified) {
-          throw new Error(
-            "Email not verified. Please check your email and click the verification link."
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
           );
-        }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          isAdmin: user.isAdmin,
-          emailVerified: user.emailVerified,
-        };
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          // Check if email is verified
+          if (!user.emailVerified) {
+            throw new Error(
+              "Email not verified. Please check your email and click the verification link."
+            );
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            isAdmin: user.isAdmin,
+            emailVerified: user.emailVerified,
+          };
+        } catch (error) {
+          console.error("Auth error:", error);
+          return null;
+        }
       },
     }),
   ],
   session: {
     strategy: "jwt" as const,
   },
-
+  pages: {
+    signIn: "/auth/signin",
+    signUp: "/auth/signup",
+    error: "/auth/signin",
+  },
   callbacks: {
     async jwt({
       token,
@@ -87,6 +96,7 @@ export const authOptions = {
             token.emailVerified = true;
           } catch (error) {
             // User might not exist yet, that's okay
+            console.error("Error updating user email verification:", error);
           }
         }
       }
@@ -101,12 +111,9 @@ export const authOptions = {
       return session;
     },
     async signIn({ user, account }: { user: any; account: any }) {
-      // Always allow sign-ins
+      // Allow all sign-ins for now
       return true;
     },
   },
-  pages: {
-    signIn: "/auth/signin",
-    signUp: "/auth/signup",
-  },
+  debug: process.env.NODE_ENV === "development",
 };
