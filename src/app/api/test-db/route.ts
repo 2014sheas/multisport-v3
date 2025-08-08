@@ -27,7 +27,9 @@ export async function GET() {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
         details: {
-          postgresPrismaUrl: process.env.POSTGRES_PRISMA_URL ? "Set" : "Not set",
+          postgresPrismaUrl: process.env.POSTGRES_PRISMA_URL
+            ? "Set"
+            : "Not set",
           databaseUrl: process.env.DATABASE_URL ? "Set" : "Not set",
           nodeEnv: process.env.NODE_ENV,
         },
