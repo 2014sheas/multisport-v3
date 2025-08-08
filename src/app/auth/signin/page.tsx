@@ -54,6 +54,21 @@ function SignInContent() {
     }
   }, [searchParams]);
 
+  // Redirect authenticated users away from signin page
+  useEffect(() => {
+    const checkAuth = async () => {
+      const session = await getSession();
+      if (session) {
+        if (session.user && "isAdmin" in session.user && session.user.isAdmin) {
+          router.push("/admin/users");
+        } else {
+          router.push("/");
+        }
+      }
+    };
+    checkAuth();
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -77,8 +92,13 @@ function SignInContent() {
         } else {
           setError("Invalid email or password");
         }
-      } else {
-        // Get the session to check if user is admin
+        // Stay on the page for auth failures
+        setLoading(false);
+        return;
+      }
+
+      // Successful authentication - redirect based on user type
+      if (result?.ok) {
         const session = await getSession();
         if (
           session?.user &&
@@ -92,7 +112,6 @@ function SignInContent() {
       }
     } catch (error) {
       setError("An error occurred. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -363,10 +382,25 @@ function SignInContent() {
             <div className="text-sm">
               <button
                 type="button"
-                onClick={() => signIn("google")}
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                onClick={async () => {
+                  setLoading(true);
+                  setError("");
+                  try {
+                    const result = await signIn("google", { redirect: false });
+                    if (result?.error) {
+                      setError("Google sign-in failed. Please try again.");
+                      setLoading(false);
+                    }
+                    // If successful, the middleware will handle the redirect
+                  } catch (error) {
+                    setError("An error occurred during Google sign-in.");
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
               >
-                Sign in with Google
+                {loading ? "Signing in..." : "Sign in with Google"}
               </button>
             </div>
           </div>

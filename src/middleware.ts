@@ -6,6 +6,12 @@ export default withAuth(
     const token = req.nextauth.token;
     const isAdmin = token?.isAdmin;
     const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
+    const isAuthRoute = req.nextUrl.pathname.startsWith("/auth");
+
+    // If user is authenticated and trying to access auth pages, redirect to home
+    if (isAuthRoute && token) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
 
     // If trying to access admin routes but not an admin
     if (isAdminRoute && !isAdmin) {
@@ -23,6 +29,13 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
+        const isAuthRoute = req.nextUrl.pathname.startsWith("/auth");
+
+        // For auth routes, we want to allow access even without token
+        // (the middleware will handle redirecting authenticated users)
+        if (isAuthRoute) {
+          return true;
+        }
 
         // For admin routes, we need both authentication and admin status
         if (isAdminRoute) {
@@ -40,6 +53,7 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
+    "/auth/:path*",
     "/draft/:path*",
     "/vote/:path*",
     "/rankings/:path*",
