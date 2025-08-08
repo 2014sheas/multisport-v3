@@ -44,6 +44,7 @@ model Player {
   votesAsCut     Vote[]       @relation("VoteCut")
   votesAsKeep    Vote[]       @relation("VoteKeep")
   votesAsTrade   Vote[]       @relation("VoteTrade")
+  eventRatings   EventRating[]
 
   @@map("players")
 }
@@ -88,6 +89,9 @@ model Event {
   finalStandings Json?    // JSON array of team IDs in final order
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  eventRatings   EventRating[]
+  votes          Vote[]
+  eloHistory     EloHistory[]
 
   @@map("events")
 }
@@ -123,7 +127,9 @@ model EloHistory {
   oldRating Int
   newRating Int
   timestamp DateTime @default(now())
+  eventId   String?
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@map("elo_history")
 }
@@ -135,9 +141,11 @@ model Vote {
   cutId        String
   keepId       String
   tradeId      String
+  eventId      String?
   cutPlayer    Player   @relation("VoteCut", fields: [cutId], references: [id])
   keepPlayer   Player   @relation("VoteKeep", fields: [keepId], references: [id])
   tradePlayer  Player   @relation("VoteTrade", fields: [tradeId], references: [id])
+  event        Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@map("votes")
 }
@@ -199,4 +207,19 @@ model EmailVerificationToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("email_verification_tokens")
+}
+
+model EventRating {
+  id        String   @id @default(cuid())
+  playerId  String
+  eventId   String
+  rating    Int      @default(5000)
+  gamesPlayed Int    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, eventId])
+  @@map("event_ratings")
 }

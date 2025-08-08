@@ -13,6 +13,7 @@ import {
   Heart,
   ArrowRight,
   Trash2,
+  Filter,
 } from "lucide-react";
 
 interface Player {
@@ -37,6 +38,25 @@ interface Player {
     newRating: number;
     timestamp: string;
   }>;
+  eventId?: string;
+  eventName?: string;
+  eventAbbreviation?: string;
+  gamesPlayed?: number;
+}
+
+interface Event {
+  id: string;
+  name: string;
+  abbreviation: string;
+  symbol: string;
+  eventType: "TOURNAMENT" | "SCORED";
+  status: "UPCOMING" | "IN_PROGRESS" | "COMPLETED";
+  startTime: string;
+  location: string;
+  points: number[];
+  finalStandings: string[] | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 type VoteSelection = "keep" | "trade" | "cut";
@@ -86,6 +106,8 @@ const getTeamAbbreviation = (
 
 export default function RankingsPage() {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [votingPlayers, setVotingPlayers] = useState<Player[]>([]);
@@ -94,18 +116,36 @@ export default function RankingsPage() {
   >({});
   const [voting, setVoting] = useState(false);
   const [voteMessage, setVoteMessage] = useState<string>("");
+  const [votingEventId, setVotingEventId] = useState<string>("");
 
   useEffect(() => {
+    fetchEvents();
     fetchRankings();
-  }, []);
+  }, [selectedEventId]);
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch("/api/events");
+      const data = await response.json();
+      setEvents(data.events || []);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      setEvents([]);
+    }
+  };
 
   const fetchRankings = async () => {
     try {
-      const response = await fetch("/api/rankings");
+      setLoading(true);
+      const url = selectedEventId
+        ? `/api/rankings?eventId=${selectedEventId}`
+        : "/api/rankings";
+      const response = await fetch(url);
       const data = await response.json();
-      setPlayers(data.players);
+      setPlayers(data.players || []);
     } catch (error) {
       console.error("Error fetching rankings:", error);
+      setPlayers([]);
     } finally {
       setLoading(false);
     }
@@ -113,7 +153,22 @@ export default function RankingsPage() {
 
   const startVoting = async () => {
     try {
-      const response = await fetch("/api/players/random");
+      // If no event is selected, randomly choose one
+      let eventIdForVoting = selectedEventId;
+      let randomlySelectedEvent = null;
+
+      if (!eventIdForVoting) {
+        // Randomly select an event
+        const randomIndex = Math.floor(Math.random() * events.length);
+        randomlySelectedEvent = events[randomIndex];
+        eventIdForVoting = randomlySelectedEvent.id;
+      }
+
+      setVotingEventId(eventIdForVoting);
+
+      // Fetch random players with event-specific ratings
+      const url = `/api/players/random?eventId=${eventIdForVoting}`;
+      const response = await fetch(url);
       const data = await response.json();
       setVotingPlayers(data.players);
       setVoteSelections({});
@@ -187,6 +242,20 @@ export default function RankingsPage() {
       return;
     }
 
+    // Ensure we have a valid eventId
+    let eventIdForVoting = votingEventId;
+    if (!eventIdForVoting && events.length > 0) {
+      // If no event is selected, randomly choose one
+      const randomIndex = Math.floor(Math.random() * events.length);
+      eventIdForVoting = events[randomIndex].id;
+      setVotingEventId(eventIdForVoting);
+    }
+
+    if (!eventIdForVoting) {
+      setVoteMessage("No event selected for voting");
+      return;
+    }
+
     setVoting(true);
     setVoteMessage("");
 
@@ -201,6 +270,7 @@ export default function RankingsPage() {
           keepId,
           tradeId,
           cutId,
+          eventId: eventIdForVoting,
         }),
       });
 
@@ -213,7 +283,18 @@ export default function RankingsPage() {
           setVoteMessage("");
 
           try {
-            const newResponse = await fetch("/api/players/random");
+            // If no specific event was selected in the main view, randomize a new event
+            let newEventId = eventIdForVoting;
+            if (!selectedEventId && events.length > 0) {
+              // Randomly select a new event for the next voting round
+              const randomIndex = Math.floor(Math.random() * events.length);
+              newEventId = events[randomIndex].id;
+              setVotingEventId(newEventId);
+            }
+
+            const newResponse = await fetch(
+              `/api/players/random?eventId=${newEventId}`
+            );
             const newData = await newResponse.json();
             setVotingPlayers(newData.players);
 
@@ -233,6 +314,28 @@ export default function RankingsPage() {
       setVoteMessage("Failed to submit vote");
     } finally {
       setVoting(false);
+    }
+  };
+
+  const handleVotingEventChange = async (newEventId: string) => {
+    // Ensure we always have a valid event selected
+    if (!newEventId && events.length > 0) {
+      // If no event is selected, randomly choose one
+      const randomIndex = Math.floor(Math.random() * events.length);
+      newEventId = events[randomIndex].id;
+    }
+
+    setVotingEventId(newEventId);
+    try {
+      // Fetch new random players for the selected event
+      const url = `/api/players/random?eventId=${newEventId}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      setVotingPlayers(data.players);
+      setVoteSelections({});
+      setVoteMessage("");
+    } catch (error) {
+      console.error("Error fetching random players for event:", error);
     }
   };
 
@@ -303,6 +406,12 @@ export default function RankingsPage() {
     }
   };
 
+  const getSelectedEventName = () => {
+    if (!votingEventId) return "Random Event";
+    const event = events.find((e) => e.id === votingEventId);
+    return event ? `${event.symbol} ${event.name}` : "Random Event";
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -320,6 +429,24 @@ export default function RankingsPage() {
         <p className="text-sm sm:text-base text-gray-600 mb-6">
           Current Values and performance history
         </p>
+
+        {/* Event Selection */}
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <Filter className="w-4 h-4 text-gray-500" />
+          <select
+            value={selectedEventId}
+            onChange={(e) => setSelectedEventId(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Overall</option>
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.symbol} {event.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <button
           onClick={startVoting}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base"
@@ -433,6 +560,7 @@ export default function RankingsPage() {
       <div className="text-center mt-8">
         <p className="text-xs sm:text-sm text-gray-500">
           Rankings are updated in real-time based on Keep-Trade-Cut votes
+          {selectedEventId && " for the selected event"}
         </p>
       </div>
 
@@ -450,6 +578,33 @@ export default function RankingsPage() {
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Event Selection for Voting */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Voting for:
+              </label>
+              <select
+                value={votingEventId}
+                onChange={(e) => handleVotingEventChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.symbol} {event.name}
+                  </option>
+                ))}
+              </select>
+              {!selectedEventId && votingEventId && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-xs text-blue-700">
+                    🎲 <strong>Randomly selected:</strong>{" "}
+                    {getSelectedEventName()}
+                    (You can change this above if you prefer a different event)
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mb-3">
@@ -497,8 +652,7 @@ export default function RankingsPage() {
                           {player.name}
                         </h3>
                         <p className="text-xs text-gray-600">
-                          {formatExperience(player.experience)} •{" "}
-                          {player.eloRating} rating
+                          {formatExperience(player.experience)}
                         </p>
                       </div>
                       {selection && (

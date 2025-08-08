@@ -22,7 +22,8 @@ function calculateEloChange(
 
 export async function POST(request: NextRequest) {
   try {
-    const { voterSession, keepId, tradeId, cutId } = await request.json();
+    const { voterSession, keepId, tradeId, cutId, eventId } =
+      await request.json();
 
     if (!keepId || !tradeId || !cutId || !voterSession) {
       return NextResponse.json(
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the current players
+    // Get the current players and their event-specific ratings
     const [keepPlayer, tradePlayer, cutPlayer] = await Promise.all([
       prisma.player.findUnique({
         where: { id: keepId },
@@ -59,39 +60,101 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Players not found" }, { status: 404 });
     }
 
+    // Get or create event-specific ratings
+    const [keepEventRating, tradeEventRating, cutEventRating] =
+      await Promise.all([
+        prisma.eventRating.upsert({
+          where: {
+            playerId_eventId: {
+              playerId: keepId,
+              eventId: eventId || "default",
+            },
+          },
+          update: {},
+          create: {
+            playerId: keepId,
+            eventId: eventId || "default",
+            rating: keepPlayer.eloRating,
+          },
+        }),
+        prisma.eventRating.upsert({
+          where: {
+            playerId_eventId: {
+              playerId: tradeId,
+              eventId: eventId || "default",
+            },
+          },
+          update: {},
+          create: {
+            playerId: tradeId,
+            eventId: eventId || "default",
+            rating: tradePlayer.eloRating,
+          },
+        }),
+        prisma.eventRating.upsert({
+          where: {
+            playerId_eventId: {
+              playerId: cutId,
+              eventId: eventId || "default",
+            },
+          },
+          update: {},
+          create: {
+            playerId: cutId,
+            eventId: eventId || "default",
+            rating: cutPlayer.eloRating,
+          },
+        }),
+      ]);
+
     // Calculate Elo changes for keep vs trade
     const { winnerChange: keepTradeChange, loserChange: tradeKeepChange } =
-      calculateEloChange(keepPlayer.eloRating, tradePlayer.eloRating);
+      calculateEloChange(keepEventRating.rating, tradeEventRating.rating);
 
     // Calculate Elo changes for keep vs cut
     const { winnerChange: keepCutChange, loserChange: cutKeepChange } =
-      calculateEloChange(keepPlayer.eloRating, cutPlayer.eloRating);
+      calculateEloChange(keepEventRating.rating, cutEventRating.rating);
 
     // Calculate Elo changes for trade vs cut
     const { winnerChange: tradeCutChange, loserChange: cutTradeChange } =
-      calculateEloChange(tradePlayer.eloRating, cutPlayer.eloRating);
+      calculateEloChange(tradeEventRating.rating, cutEventRating.rating);
 
-    // Update all three players in a transaction
+    // Update all three players' event-specific ratings in a transaction
     const [updatedKeep, updatedTrade, updatedCut] = await prisma.$transaction([
-      prisma.player.update({
-        where: { id: keepId },
+      prisma.eventRating.update({
+        where: {
+          playerId_eventId: {
+            playerId: keepId,
+            eventId: eventId || "default",
+          },
+        },
         data: {
-          eloRating: keepPlayer.eloRating + keepTradeChange + keepCutChange,
-          gamesPlayed: keepPlayer.gamesPlayed + 2, // Played against both trade and cut
+          rating: keepEventRating.rating + keepTradeChange + keepCutChange,
+          gamesPlayed: keepEventRating.gamesPlayed + 2,
         },
       }),
-      prisma.player.update({
-        where: { id: tradeId },
+      prisma.eventRating.update({
+        where: {
+          playerId_eventId: {
+            playerId: tradeId,
+            eventId: eventId || "default",
+          },
+        },
         data: {
-          eloRating: tradePlayer.eloRating + tradeKeepChange + tradeCutChange,
-          gamesPlayed: tradePlayer.gamesPlayed + 2, // Played against both keep and cut
+          rating: tradeEventRating.rating + tradeKeepChange + tradeCutChange,
+          gamesPlayed: tradeEventRating.gamesPlayed + 2,
         },
       }),
-      prisma.player.update({
-        where: { id: cutId },
+      prisma.eventRating.update({
+        where: {
+          playerId_eventId: {
+            playerId: cutId,
+            eventId: eventId || "default",
+          },
+        },
         data: {
-          eloRating: cutPlayer.eloRating + cutKeepChange + cutTradeChange,
-          gamesPlayed: cutPlayer.gamesPlayed + 2, // Played against both keep and trade
+          rating: cutEventRating.rating + cutKeepChange + cutTradeChange,
+          gamesPlayed: cutEventRating.gamesPlayed + 2,
         },
       }),
       // Record the vote
@@ -101,30 +164,34 @@ export async function POST(request: NextRequest) {
           keepId,
           tradeId,
           cutId,
+          eventId: eventId || null,
         },
       }),
       // Record Elo history for keep player
       prisma.eloHistory.create({
         data: {
           playerId: keepId,
-          oldRating: keepPlayer.eloRating,
-          newRating: keepPlayer.eloRating + keepTradeChange + keepCutChange,
+          oldRating: keepEventRating.rating,
+          newRating: keepEventRating.rating + keepTradeChange + keepCutChange,
+          eventId: eventId || null,
         },
       }),
       // Record Elo history for trade player
       prisma.eloHistory.create({
         data: {
           playerId: tradeId,
-          oldRating: tradePlayer.eloRating,
-          newRating: tradePlayer.eloRating + tradeKeepChange + tradeCutChange,
+          oldRating: tradeEventRating.rating,
+          newRating: tradeEventRating.rating + tradeKeepChange + tradeCutChange,
+          eventId: eventId || null,
         },
       }),
       // Record Elo history for cut player
       prisma.eloHistory.create({
         data: {
           playerId: cutId,
-          oldRating: cutPlayer.eloRating,
-          newRating: cutPlayer.eloRating + cutKeepChange + cutTradeChange,
+          oldRating: cutEventRating.rating,
+          newRating: cutEventRating.rating + cutKeepChange + cutTradeChange,
+          eventId: eventId || null,
         },
       }),
     ]);
@@ -133,17 +200,17 @@ export async function POST(request: NextRequest) {
       success: true,
       keep: {
         id: updatedKeep.id,
-        eloRating: updatedKeep.eloRating,
+        eloRating: updatedKeep.rating,
         change: keepTradeChange + keepCutChange,
       },
       trade: {
         id: updatedTrade.id,
-        eloRating: updatedTrade.eloRating,
+        eloRating: updatedTrade.rating,
         change: tradeKeepChange + tradeCutChange,
       },
       cut: {
         id: updatedCut.id,
-        eloRating: updatedCut.eloRating,
+        eloRating: updatedCut.rating,
         change: cutKeepChange + cutTradeChange,
       },
     });
