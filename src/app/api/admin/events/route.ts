@@ -81,13 +81,7 @@ export async function POST(request: NextRequest) {
       finalStandings,
     } = await request.json();
 
-    if (
-      !name ||
-      !abbreviation ||
-      !symbol ||
-      !eventType ||
-      !status
-    ) {
+    if (!name || !abbreviation || !symbol || !eventType || !status) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
