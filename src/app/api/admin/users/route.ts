@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
-      rating: user.player?.eloRating || 1200,
+      rating: user.player?.eloRating || 5000,
       teamId: user.player?.teamMembers[0]?.teamId || null,
       player: user.player
         ? {

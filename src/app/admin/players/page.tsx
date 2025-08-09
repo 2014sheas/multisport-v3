@@ -24,13 +24,13 @@ export default function AdminPlayersPage() {
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
-    eloRating: 1200,
+    eloRating: 5000,
     experience: 0,
     wins: 0,
   });
   const [formData, setFormData] = useState({
     name: "",
-    eloRating: 1200,
+    eloRating: 5000,
     experience: 0,
     wins: 0,
   });
@@ -64,7 +64,7 @@ export default function AdminPlayersPage() {
 
       if (response.ok) {
         setShowAddForm(false);
-        setFormData({ name: "", eloRating: 1200, experience: 0, wins: 0 });
+        setFormData({ name: "", eloRating: 5000, experience: 0, wins: 0 });
         fetchPlayers();
       }
     } catch (error) {
@@ -87,7 +87,7 @@ export default function AdminPlayersPage() {
 
       if (response.ok) {
         setEditingPlayer(null);
-        setEditFormData({ name: "", eloRating: 1200, experience: 0, wins: 0 });
+        setEditFormData({ name: "", eloRating: 5000, experience: 0, wins: 0 });
         fetchPlayers();
       }
     } catch (error) {
@@ -234,7 +234,7 @@ export default function AdminPlayersPage() {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          eloRating: parseInt(e.target.value) || 1200,
+                          eloRating: parseInt(e.target.value) || 5000,
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
@@ -329,7 +329,7 @@ export default function AdminPlayersPage() {
                       onChange={(e) =>
                         setEditFormData({
                           ...editFormData,
-                          eloRating: parseInt(e.target.value) || 1200,
+                          eloRating: parseInt(e.target.value) || 5000,
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
@@ -374,7 +374,7 @@ export default function AdminPlayersPage() {
                         setEditingPlayer(null);
                         setEditFormData({
                           name: "",
-                          eloRating: 1200,
+                          eloRating: 5000,
                           experience: 0,
                           wins: 0,
                         });

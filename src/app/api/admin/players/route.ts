@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const player = await prisma.player.create({
       data: {
         name,
-        eloRating: eloRating || 1200,
+        eloRating: eloRating || 5000,
         experience: experience || 0,
         wins: wins || 0,
       },

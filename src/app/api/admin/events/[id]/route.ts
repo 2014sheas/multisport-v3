@@ -3,10 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function PUT(request: NextRequest, { params }: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -24,6 +25,7 @@ export async function PUT(
       );
     }
 
+    const { id } = await params;
     const {
       name,
       abbreviation,
@@ -52,7 +54,7 @@ export async function PUT(
     }
 
     const event = await prisma.event.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name,
         abbreviation,
@@ -76,10 +78,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -97,8 +96,10 @@ export async function DELETE(
       );
     }
 
+    const { id } = await params;
+
     await prisma.event.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: "Event deleted successfully" });

@@ -139,7 +139,7 @@ The Google sign-in button will appear on the sign-in page once configured.
 
 The ranking system uses a KeepTradeCut-style Elo calculation:
 
-- Starting rating: 1200
+- Starting rating: 5000
 - K-factor: 32 (can be adjusted based on games played)
 - Votes between 3 players affect Elo ratings
 - Winner gains Elo, losers lose Elo

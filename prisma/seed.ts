@@ -13,12 +13,12 @@ async function main() {
 
     // Create sample players
     const players = [
-      { name: "John Doe", eloRating: 1200 },
-      { name: "Jane Smith", eloRating: 1200 },
-      { name: "Mike Johnson", eloRating: 1200 },
-      { name: "Sarah Wilson", eloRating: 1200 },
-      { name: "Tom Brown", eloRating: 1200 },
-      { name: "Lisa Davis", eloRating: 1200 },
+      { name: "John Doe", eloRating: 5000 },
+      { name: "Jane Smith", eloRating: 5000 },
+      { name: "Mike Johnson", eloRating: 5000 },
+      { name: "Sarah Wilson", eloRating: 5000 },
+      { name: "Tom Brown", eloRating: 5000 },
+      { name: "Lisa Davis", eloRating: 5000 },
     ];
 
     for (const playerData of players) {

@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         captainId: captainId || null,
-        eloRating: 1200,
+        eloRating: 5000,
       },
     });
 
