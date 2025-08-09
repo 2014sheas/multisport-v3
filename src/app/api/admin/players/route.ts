@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
       id: player.id,
       name: player.name,
       eloRating: player.eloRating,
-      experience: player.experience,
-      wins: player.wins,
+      experience: player.experience || 0,
+      wins: player.wins || 0,
       teamId: player.teamMembers[0]?.teamId || null,
       user: player.user,
     }));
@@ -93,8 +93,8 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         eloRating: eloRating || 5000,
-        experience: experience || 0,
-        wins: wins || 0,
+        experience: experience !== undefined ? experience : null,
+        wins: wins !== undefined ? wins : null,
       },
     });
 

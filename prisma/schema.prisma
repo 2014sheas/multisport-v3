@@ -34,8 +34,8 @@ model Player {
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-  experience     Int          @default(0)
-  wins           Int          @default(0)
+  experience     Int?
+  wins           Int?
   draftPicks     DraftPick[]
   eloHistory     EloHistory[]
   teamMembers    TeamMember[]
@@ -83,8 +83,8 @@ model Event {
   symbol         String   // emoji
   eventType      EventType
   status         EventStatus @default(UPCOMING)
-  startTime      DateTime
-  location       String
+  startTime      DateTime?
+  location       String?
   points         Int[]    // array of points for each place
   finalStandings Json?    // JSON array of team IDs in final order
   createdAt      DateTime @default(now())

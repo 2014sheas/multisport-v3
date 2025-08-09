@@ -25,6 +25,20 @@ export async function GET(request: NextRequest) {
       orderBy: {
         startTime: "desc",
       },
+      select: {
+        id: true,
+        name: true,
+        abbreviation: true,
+        symbol: true,
+        eventType: true,
+        status: true,
+        startTime: true,
+        location: true,
+        points: true,
+        finalStandings: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return NextResponse.json({ events });
@@ -72,9 +86,7 @@ export async function POST(request: NextRequest) {
       !abbreviation ||
       !symbol ||
       !eventType ||
-      !status ||
-      !startTime ||
-      !location
+      !status
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -89,8 +101,8 @@ export async function POST(request: NextRequest) {
         symbol,
         eventType,
         status,
-        startTime: new Date(startTime),
-        location,
+        startTime: startTime ? new Date(startTime) : null,
+        location: location || null,
         points: points || [],
         finalStandings: finalStandings || null,
       },
