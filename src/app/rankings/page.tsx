@@ -14,6 +14,8 @@ import {
   ArrowRight,
   Trash2,
   Filter,
+  Users,
+  Calendar,
 } from "lucide-react";
 
 interface Player {
@@ -447,6 +449,17 @@ export default function RankingsPage() {
           </select>
         </div>
 
+        {events.length === 0 && (
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-md">
+              <Calendar className="w-4 h-4 text-yellow-600 mr-2" />
+              <span className="text-sm text-yellow-800">
+                No events available. Contact an administrator to create events.
+              </span>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={startVoting}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base"
@@ -471,89 +484,109 @@ export default function RankingsPage() {
         </div>
 
         <div className="divide-y divide-gray-200">
-          {players.map((player, index) => (
-            <div
-              key={player.id}
-              className={`py-4 hover:bg-gray-50 transition-colors ${
-                player.team ? "border-l-4" : ""
-              }`}
-              style={{
-                borderLeftColor: player.team
-                  ? getTeamColor(player.team)
-                  : undefined,
-                backgroundColor: player.team
-                  ? `${getTeamColor(player.team)}10`
-                  : undefined,
-              }}
-            >
-              <div className="flex items-center px-6">
-                <div className="w-12 sm:w-16 flex-shrink-0">
-                  <span
-                    className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-xs font-semibold ${
-                      index < 3
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {player.rank}
-                  </span>
-                </div>
-
-                <div className="flex-1 min-w-0 mr-4">
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 hidden sm:flex">
-                      <span className="text-xs font-bold text-blue-600">
-                        {player.name.charAt(0).toUpperCase()}
+          {players.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto h-12 w-12 text-gray-400">
+                <Users className="h-12 w-12" />
+              </div>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No players found
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {selectedEventId
+                  ? "No players have ratings for this event yet. Players will appear here once they start participating."
+                  : "No players have been added to the system yet. Contact an administrator to add players."}
+              </p>
+            </div>
+          ) : (
+            <>
+              {players.map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`py-4 hover:bg-gray-50 transition-colors ${
+                    player.team ? "border-l-4" : ""
+                  }`}
+                  style={{
+                    borderLeftColor: player.team
+                      ? getTeamColor(player.team)
+                      : undefined,
+                    backgroundColor: player.team
+                      ? `${getTeamColor(player.team)}10`
+                      : undefined,
+                  }}
+                >
+                  <div className="flex items-center px-6">
+                    <div className="w-12 sm:w-16 flex-shrink-0">
+                      <span
+                        className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-xs font-semibold ${
+                          index < 3
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {player.rank}
                       </span>
                     </div>
-                    <div className="flex items-center min-w-0 flex-1">
-                      <span className="font-medium text-gray-900 text-xs sm:text-sm truncate">
-                        {player.name}
+
+                    <div className="flex-1 min-w-0 mr-4">
+                      <div className="flex items-center">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 hidden sm:flex">
+                          <span className="text-xs font-bold text-blue-600">
+                            {player.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex items-center min-w-0 flex-1">
+                          <span className="font-medium text-gray-900 text-xs sm:text-sm truncate">
+                            {player.name}
+                          </span>
+                          {player.captainedTeams.length > 0 && (
+                            <Star
+                              className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 ml-1 flex-shrink-0"
+                              fill="currentColor"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="w-20 flex-shrink-0 text-center hidden sm:block">
+                      <span className="text-xs sm:text-sm text-gray-600">
+                        {formatExperience(player.experience)}
                       </span>
-                      {player.captainedTeams.length > 0 && (
-                        <Star
-                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 ml-1 flex-shrink-0"
-                          fill="currentColor"
-                        />
+                    </div>
+
+                    <div className="w-20 flex-shrink-0 text-center">
+                      {player.team ? (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 sm:px-2.5 rounded-full text-xs font-medium truncate"
+                          style={{
+                            backgroundColor: `${getTeamColor(player.team)}20`,
+                            color: getTeamColor(player.team),
+                          }}
+                        >
+                          {getTeamAbbreviation(player.team)}
+                        </span>
+                      ) : (
+                        <span className="text-xs sm:text-sm text-gray-400">
+                          FA
+                        </span>
                       )}
+                    </div>
+
+                    <div className="w-16 flex-shrink-0 text-center">
+                      <TrendIndicator trend={player.trend} />
+                    </div>
+
+                    <div className="w-16 sm:w-20 flex-shrink-0 text-center">
+                      <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                        {player.eloRating}
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                <div className="w-20 flex-shrink-0 text-center hidden sm:block">
-                  <span className="text-xs sm:text-sm text-gray-600">
-                    {formatExperience(player.experience)}
-                  </span>
-                </div>
-
-                <div className="w-20 flex-shrink-0 text-center">
-                  {player.team ? (
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 sm:px-2.5 rounded-full text-xs font-medium truncate"
-                      style={{
-                        backgroundColor: `${getTeamColor(player.team)}20`,
-                        color: getTeamColor(player.team),
-                      }}
-                    >
-                      {getTeamAbbreviation(player.team)}
-                    </span>
-                  ) : (
-                    <span className="text-xs sm:text-sm text-gray-400">FA</span>
-                  )}
-                </div>
-
-                <div className="w-16 flex-shrink-0 text-center">
-                  <TrendIndicator trend={player.trend} />
-                </div>
-
-                <div className="w-16 sm:w-20 flex-shrink-0 text-center">
-                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
-                    {player.eloRating}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+              ))}
+            </>
+          )}
         </div>
       </div>
 

@@ -324,54 +324,172 @@ export default function AdminTeamsPage() {
         </div>
       )}
 
+      {players.length === 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <Users className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                No players available
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>
+                  You need to create players before you can manage teams. Go to
+                  the Players admin page to create your first player.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Teams Section */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Teams</h2>
           <div className="space-y-4">
-            {teams.map((team) => (
-              <div
-                key={team.id}
-                className="bg-white rounded-lg shadow-md p-4 border-l-4"
-                style={{ borderLeftColor: team.color }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{team.name}</h3>
-                    <p className="text-xs text-gray-500">
-                      Captain:{" "}
-                      {team.captain
-                        ? `${team.captain.name} (Rating: ${team.captain.eloRating})`
-                        : "Not assigned"}
-                    </p>
-                    {team.abbreviation && (
-                      <p className="text-xs text-gray-500">
-                        Abbreviation: {team.abbreviation}
+            {teams.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-sm font-medium text-gray-900 mb-2">
+                  No teams created yet
+                </h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  Create your first team to get started with team management.
+                </p>
+                <button
+                  onClick={() => setShowCreateTeam(true)}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Team
+                </button>
+              </div>
+            ) : (
+              <>
+                {teams.map((team) => (
+                  <div
+                    key={team.id}
+                    className="bg-white rounded-lg shadow-md p-4 border-l-4"
+                    style={{ borderLeftColor: team.color }}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">
+                          {team.name}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          Captain:{" "}
+                          {team.captain
+                            ? `${team.captain.name} (Rating: ${team.captain.eloRating})`
+                            : "Not assigned"}
+                        </p>
+                        {team.abbreviation && (
+                          <p className="text-xs text-gray-500">
+                            Abbreviation: {team.abbreviation}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500">
+                          {getPlayersByTeam(team.id).length} players
+                        </span>
+                        <button
+                          onClick={() => handleEditTeam(team)}
+                          className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
+                        >
+                          Edit
+                        </button>
+                        {getPlayersByTeam(team.id).length > 0 && (
+                          <button
+                            onClick={() => handleAssignCaptain(team.id)}
+                            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                          >
+                            Assign Captain
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {getPlayersByTeam(team.id).map((player) => (
+                        <div
+                          key={player.id}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                        >
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-900">
+                              {player.name}
+                            </span>
+                            <div className="text-xs text-gray-500">
+                              Rating: {player.eloRating} | Exp:{" "}
+                              {player.experience}y | Wins: {player.wins}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() =>
+                                handleAssignToTeam(player.id, null)
+                              }
+                              disabled={saving}
+                              className="text-red-600 hover:text-red-800 text-xs"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Unassigned Players Section */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Unassigned Players
+          </h2>
+          {players.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-sm font-medium text-gray-900 mb-2">
+                No players created yet
+              </h3>
+              <p className="text-gray-500 text-sm mb-4">
+                You need to create players before you can assign them to teams.
+              </p>
+              <p className="text-xs text-gray-400">
+                Go to the Players admin page to create your first player.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-md p-4">
+              {getUnassignedPlayers().length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">
+                    All players assigned
+                  </h3>
+                  <p className="text-gray-500 text-sm">
+                    {players.length === 0
+                      ? "No players have been created yet. Create players first, then create teams to assign them to."
+                      : "All players have been successfully assigned to teams."}
+                  </p>
+                  {players.length === 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs text-gray-400 mb-2">
+                        You can create players from the Players admin page.
                       </p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">
-                      {getPlayersByTeam(team.id).length} players
-                    </span>
-                    <button
-                      onClick={() => handleEditTeam(team)}
-                      className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
-                    >
-                      Edit
-                    </button>
-                    {getPlayersByTeam(team.id).length > 0 && (
-                      <button
-                        onClick={() => handleAssignCaptain(team.id)}
-                        className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
-                      >
-                        Assign Captain
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
+              ) : (
                 <div className="space-y-2">
-                  {getPlayersByTeam(team.id).map((player) => (
+                  {getUnassignedPlayers().map((player) => (
                     <div
                       key={player.id}
                       className="flex items-center justify-between p-2 bg-gray-50 rounded"
@@ -386,69 +504,30 @@ export default function AdminTeamsPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleAssignToTeam(player.id, null)}
+                        <select
+                          onChange={(e) =>
+                            handleAssignToTeam(
+                              player.id,
+                              e.target.value || null
+                            )
+                          }
                           disabled={saving}
-                          className="text-red-600 hover:text-red-800 text-xs"
+                          className="text-xs border border-gray-300 rounded px-2 py-1"
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                          <option value="">Assign to team...</option>
+                          {teams.map((team) => (
+                            <option key={team.id} value={team.id}>
+                              {team.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Unassigned Players Section */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Unassigned Players
-          </h2>
-          <div className="bg-white rounded-lg shadow-md p-4">
-            {getUnassignedPlayers().length === 0 ? (
-              <p className="text-gray-500 text-sm italic">
-                All players have been assigned to teams
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {getUnassignedPlayers().map((player) => (
-                  <div
-                    key={player.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                  >
-                    <div className="flex-1">
-                      <span className="text-sm font-medium text-gray-900">
-                        {player.name}
-                      </span>
-                      <div className="text-xs text-gray-500">
-                        Rating: {player.eloRating} | Exp: {player.experience}y |
-                        Wins: {player.wins}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <select
-                        onChange={(e) =>
-                          handleAssignToTeam(player.id, e.target.value || null)
-                        }
-                        disabled={saving}
-                        className="text-xs border border-gray-300 rounded px-2 py-1"
-                      >
-                        <option value="">Assign to team...</option>
-                        {teams.map((team) => (
-                          <option key={team.id} value={team.id}>
-                            {team.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

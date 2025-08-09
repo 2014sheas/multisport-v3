@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log("🔍 Fetching players from database...");
+
     const players = await prisma.player.findMany({
       select: {
         id: true,
@@ -46,6 +48,8 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log(`✅ Found ${players.length} players`);
+
     // Format players to include teamId
     const formattedPlayers = players.map((player) => ({
       id: player.id,
@@ -59,9 +63,19 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ players: formattedPlayers });
   } catch (error) {
-    console.error("Error fetching players:", error);
+    console.error("❌ Error fetching players:", error);
+
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+
     return NextResponse.json(
-      { error: "Failed to fetch players" },
+      {
+        error: "Failed to fetch players",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

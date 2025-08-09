@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Edit, Link, Unlink } from "lucide-react";
+import { Search, Edit, Link, Unlink, Users } from "lucide-react";
 import AdminGuard from "@/components/AdminGuard";
 
 interface User {
@@ -163,65 +163,102 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {user.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.player ? (
-                      <div className="text-sm text-gray-900">
-                        <div>{user.player.name}</div>
-                        <div className="text-gray-500">
-                          Elo: {user.player.eloRating}
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    {searchTerm ? (
+                      <div>
+                        <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+                          <Search className="h-12 w-12 mx-auto" />
                         </div>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">
+                          No users found
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          No users match your search for &quot;{searchTerm}
+                          &quot;.
+                        </p>
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-500">
-                        No player linked
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.isAdmin
-                          ? "bg-red-100 text-red-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {user.isAdmin ? "Admin" : "User"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {user.player ? (
-                      <button
-                        onClick={() => handleUnlinkPlayer(user.id)}
-                        className="text-red-600 hover:text-red-900 mr-3"
-                        title="Unlink player"
-                      >
-                        <Unlink className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setEditingUser(user);
-                          setShowLinkModal(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                        title="Link to player"
-                      >
-                        <Link className="w-4 h-4" />
-                      </button>
+                      <div>
+                        <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+                          <Users className="h-12 w-12 mx-auto" />
+                        </div>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">
+                          No users registered
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          No users have registered accounts yet.
+                        </p>
+                      </div>
                     )}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                <>
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.name}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {user.email}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {user.player ? (
+                          <div className="text-sm text-gray-900">
+                            <div>{user.player.name}</div>
+                            <div className="text-gray-500">
+                              Elo: {user.player.eloRating}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">
+                            No player linked
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            user.isAdmin
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {user.isAdmin ? "Admin" : "User"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {user.player ? (
+                          <button
+                            onClick={() => handleUnlinkPlayer(user.id)}
+                            className="text-red-600 hover:text-red-900 mr-3"
+                            title="Unlink player"
+                          >
+                            <Unlink className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingUser(user);
+                              setShowLinkModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-900 mr-3"
+                            title="Link to player"
+                          >
+                            <Link className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              )}
             </tbody>
           </table>
         </div>

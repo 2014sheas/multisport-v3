@@ -42,10 +42,14 @@ export default function AdminPlayersPage() {
   const fetchPlayers = async () => {
     try {
       const response = await fetch("/api/admin/players");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
-      setPlayers(data.players);
+      setPlayers(data.players || []); // Ensure we always have an array
     } catch (error) {
       console.error("Error fetching players:", error);
+      setPlayers([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -131,74 +135,88 @@ export default function AdminPlayersPage() {
 
         {/* Players Table */}
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Elo Rating
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Experience
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wins
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Linked Account
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {players.map((player) => (
-                <tr key={player.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {player.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {player.eloRating}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {player.experience} years
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{player.wins}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {player.user ? (
-                      <div className="text-sm text-gray-900">
-                        <div className="font-medium">{player.user.name}</div>
-                        <div className="text-gray-500">{player.user.email}</div>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">
-                        No account linked
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleEditClick(player)}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                  </td>
+          {players.length === 0 ? (
+            <div className="p-8 text-center">
+              <Users className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No players
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Get started by creating your first player.
+              </p>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Elo Rating
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Experience
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Wins
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Linked Account
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {players.map((player) => (
+                  <tr key={player.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {player.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {player.eloRating}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {player.experience} years
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{player.wins}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {player.user ? (
+                        <div className="text-sm text-gray-900">
+                          <div className="font-medium">{player.user.name}</div>
+                          <div className="text-gray-500">
+                            {player.user.email}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">
+                          No account linked
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleEditClick(player)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Add Player Form */}
