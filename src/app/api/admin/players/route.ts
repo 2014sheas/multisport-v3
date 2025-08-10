@@ -21,15 +21,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get query parameters for pagination
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const search = searchParams.get("search") || "";
+    const sortBy = searchParams.get("sortBy") || "name";
+    const sortOrder = searchParams.get("sortOrder") || "asc";
+
     console.log("🔍 Fetching players from database...");
 
+    // Build where clause for search
+    const whereClause = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { user: { email: { contains: search, mode: "insensitive" } } },
+          ],
+        }
+      : {};
+
+    // Get total count for pagination
+    const totalCount = await prisma.player.count({ where: whereClause });
+
+    // Optimized query with pagination and selective relations
     const players = await prisma.player.findMany({
+      where: whereClause,
       select: {
         id: true,
         name: true,
         eloRating: true,
         experience: true,
         wins: true,
+        isActive: true,
+        gamesPlayed: true,
         user: {
           select: {
             id: true,
@@ -37,18 +62,26 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
+        // Only get the first team membership to avoid N+1 queries
         teamMembers: {
+          take: 1,
           select: {
             teamId: true,
           },
         },
       },
       orderBy: {
-        name: "asc",
+        [sortBy]: sortOrder,
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    console.log(`✅ Found ${players.length} players`);
+    console.log(
+      `✅ Found ${players.length} players (page ${page}/${Math.ceil(
+        totalCount / limit
+      )})`
+    );
 
     // Format players to include teamId
     const formattedPlayers = players.map((player) => ({
@@ -57,11 +90,21 @@ export async function GET(request: NextRequest) {
       eloRating: player.eloRating,
       experience: player.experience || 0,
       wins: player.wins || 0,
+      isActive: player.isActive,
+      gamesPlayed: player.gamesPlayed,
       teamId: player.teamMembers[0]?.teamId || null,
       user: player.user,
     }));
 
-    return NextResponse.json({ players: formattedPlayers });
+    return NextResponse.json({
+      players: formattedPlayers,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
   } catch (error) {
     console.error("❌ Error fetching players:", error);
 

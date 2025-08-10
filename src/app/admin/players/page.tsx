@@ -10,11 +10,21 @@ interface Player {
   eloRating: number;
   experience: number;
   wins: number;
+  isActive: boolean;
+  gamesPlayed: number;
   user?: {
     id: string;
     name: string;
     email: string;
   };
+  teamId?: string | null;
+}
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export default function AdminPlayersPage() {
@@ -22,6 +32,15 @@ export default function AdminPlayersPage() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 1,
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [editFormData, setEditFormData] = useState({
     name: "",
     eloRating: 5000,
@@ -39,17 +58,43 @@ export default function AdminPlayersPage() {
     fetchPlayers();
   }, []);
 
-  const fetchPlayers = async () => {
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm) {
+        fetchPlayers(1, searchTerm, sortBy, sortOrder);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, sortBy, sortOrder]);
+
+  const fetchPlayers = async (
+    page = 1,
+    search = "",
+    sortByParam = "name",
+    sortOrderParam: "asc" | "desc" = "asc"
+  ) => {
     try {
-      const response = await fetch("/api/admin/players");
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.limit.toString(),
+        search,
+        sortBy: sortByParam,
+        sortOrder: sortOrderParam,
+      });
+
+      const response = await fetch(`/api/admin/players?${params}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      setPlayers(data.players || []); // Ensure we always have an array
+      setPlayers(data.players || []);
+      setPagination(data.pagination || pagination);
     } catch (error) {
       console.error("Error fetching players:", error);
-      setPlayers([]); // Set empty array on error
+      setPlayers([]);
     } finally {
       setLoading(false);
     }
@@ -109,7 +154,7 @@ export default function AdminPlayersPage() {
     });
   };
 
-  if (loading) {
+  if (loading && players.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -133,8 +178,63 @@ export default function AdminPlayersPage() {
           </button>
         </div>
 
+        {/* Search and Sort Controls */}
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Search players by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="name">Name</option>
+                <option value="eloRating">Rating</option>
+                <option value="experience">Experience</option>
+                <option value="wins">Wins</option>
+                <option value="gamesPlayed">Games</option>
+              </select>
+              <button
+                onClick={() => {
+                  const newOrder = sortOrder === "asc" ? "desc" : "asc";
+                  setSortOrder(newOrder);
+                  fetchPlayers(1, searchTerm, sortBy, newOrder);
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {sortOrder === "asc" ? "↑" : "↓"}
+              </button>
+            </div>
+
+            {/* Search Button */}
+            <button
+              onClick={() => fetchPlayers(1, searchTerm, sortBy, sortOrder)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+
         {/* Players Table */}
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          {loading && players.length > 0 && (
+            <div className="p-4 text-center bg-blue-50 border-b border-blue-200">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 inline-block mr-2"></div>
+              <span className="text-sm text-blue-600">Updating players...</span>
+            </div>
+          )}
           {players.length === 0 ? (
             <div className="p-8 text-center">
               <Users className="mx-auto h-12 w-12 text-gray-400" />
@@ -218,6 +318,50 @@ export default function AdminPlayersPage() {
             </table>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {pagination.totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+              {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+              of {pagination.total} results
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() =>
+                  fetchPlayers(
+                    pagination.page - 1,
+                    searchTerm,
+                    sortBy,
+                    sortOrder
+                  )
+                }
+                disabled={pagination.page <= 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-700">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <button
+                onClick={() =>
+                  fetchPlayers(
+                    pagination.page + 1,
+                    searchTerm,
+                    sortBy,
+                    sortOrder
+                  )
+                }
+                disabled={pagination.page >= pagination.totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Add Player Form */}
         {showAddForm && (

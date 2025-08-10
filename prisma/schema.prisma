@@ -47,6 +47,9 @@ model Player {
   eventRatings   EventRating[]
 
   @@map("players")
+  @@index([name])
+  @@index([eloRating])
+  @@index([isActive])
 }
 
 model Team {
@@ -74,6 +77,8 @@ model TeamMember {
 
   @@id([teamId, playerId])
   @@map("team_members")
+  @@index([playerId])
+  @@index([teamId])
 }
 
 model Event {
