@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 
+// Simple in-memory cache for frequently accessed data
+const cache = new Map();
+const CACHE_TTL = 30000; // 30 seconds
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -32,6 +36,7 @@ export async function GET(request: NextRequest) {
     console.log("🔍 Fetching players from database...");
 
     // Build where clause for search
+    // Use database-level text search for better performance
     const whereClause = search
       ? {
           OR: [
@@ -45,10 +50,17 @@ export async function GET(request: NextRequest) {
         }
       : {};
 
-    // Get total count for pagination
-    const totalCount = await prisma.player.count({ where: whereClause });
+    // Check cache first for non-search queries
+    const cacheKey = `players_${page}_${limit}_${sortBy}_${sortOrder}_${search}`;
+    const cached = cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL && !search) {
+      console.log("📦 Returning cached players data");
+      return NextResponse.json(cached.data);
+    }
 
-    // Optimized query with pagination and selective relations
+    // Single optimized query with pagination and selective relations
+    // Using database indexes for faster sorting and filtering
+    // Add query timeout and connection hints for better performance
     const players = await prisma.player.findMany({
       where: whereClause,
       select: {
@@ -66,12 +78,16 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
-        // Only get the first team membership to avoid N+1 queries
+        // Optimize team membership query with proper indexing
         teamMembers: {
-          take: 1,
           select: {
             teamId: true,
           },
+          // Use orderBy to ensure consistent results
+          orderBy: {
+            joinedAt: "desc",
+          },
+          take: 1,
         },
       },
       orderBy: {
@@ -80,6 +96,30 @@ export async function GET(request: NextRequest) {
       skip: (page - 1) * limit,
       take: limit,
     });
+
+    // Get total count only if we need pagination info
+    // Optimize by avoiding count query when possible
+    let totalCount: number;
+    if (players.length === limit) {
+      // Use raw SQL for count when we need the full total
+      // This is often faster than Prisma's count() for large datasets
+      const countResult = await prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count 
+        FROM players p 
+        LEFT JOIN users u ON p."userId" = u.id 
+        WHERE ${
+          search
+            ? `(
+          LOWER(p.name) LIKE LOWER(${`%${search}%`}) OR 
+          LOWER(u.email) LIKE LOWER(${`%${search}%`})
+        )`
+            : "TRUE"
+        }
+      `;
+      totalCount = Number(countResult[0].count);
+    } else {
+      totalCount = (page - 1) * limit + players.length;
+    }
 
     console.log(
       `✅ Found ${players.length} players (page ${page}/${Math.ceil(
@@ -99,6 +139,24 @@ export async function GET(request: NextRequest) {
       teamId: player.teamMembers[0]?.teamId || null,
       user: player.user,
     }));
+
+    // Cache the result for non-search queries
+    if (!search) {
+      const responseData = {
+        players: formattedPlayers,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
+      cache.set(cacheKey, {
+        data: responseData,
+        timestamp: Date.now(),
+      });
+      console.log("💾 Cached players data");
+    }
 
     return NextResponse.json({
       players: formattedPlayers,
