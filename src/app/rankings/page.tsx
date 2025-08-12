@@ -111,6 +111,7 @@ export default function RankingsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [votingPlayers, setVotingPlayers] = useState<Player[]>([]);
   const [voteSelections, setVoteSelections] = useState<
@@ -139,14 +140,19 @@ export default function RankingsPage() {
   const fetchRankings = async () => {
     try {
       setLoading(true);
+      setError(null);
       const url = selectedEventId
         ? `/api/rankings?eventId=${selectedEventId}`
         : "/api/rankings";
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setPlayers(data.players || []);
     } catch (error) {
       console.error("Error fetching rankings:", error);
+      setError("Failed to load rankings. Please try again.");
       setPlayers([]);
     } finally {
       setLoading(false);
@@ -438,7 +444,8 @@ export default function RankingsPage() {
           <select
             value={selectedEventId}
             onChange={(e) => setSelectedEventId(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
+            className="px-4 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">Overall</option>
             {events.map((event) => (
@@ -447,6 +454,9 @@ export default function RankingsPage() {
               </option>
             ))}
           </select>
+          {loading && (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          )}
         </div>
 
         {events.length === 0 && (
@@ -456,6 +466,21 @@ export default function RankingsPage() {
               <span className="text-sm text-yellow-800">
                 No events available. Contact an administrator to create events.
               </span>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+              <XCircle className="w-4 h-4 text-red-600 mr-2" />
+              <span className="text-sm text-red-800">{error}</span>
+              <button
+                onClick={fetchRankings}
+                className="ml-2 text-xs bg-red-100 hover:bg-red-200 px-2 py-1 rounded transition-colors"
+              >
+                Retry
+              </button>
             </div>
           </div>
         )}

@@ -2,15 +2,62 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { NextRequest } from "next/server";
 
+interface EloHistoryEntry {
+  playerId: string;
+  oldRating: number;
+  newRating: number;
+}
+
+interface CaptainData {
+  id: string;
+  name: string;
+  captainId: string | null;
+}
+
+interface TeamMembershipData {
+  playerId: string;
+  teamId: string;
+}
+
+interface TeamData {
+  id: string;
+  name: string;
+  color: string;
+  abbreviation: string | null;
+}
+
+interface PlayerRanking {
+  id: string;
+  name: string;
+  eloRating: number;
+  experience: number;
+  rank: number;
+  trend: number;
+  captainedTeams: Array<{ id: string; name: string }>;
+  team: {
+    id: string;
+    name: string;
+    color: string;
+    abbreviation: string | null;
+  } | null;
+  eventId?: string;
+  eventName?: string;
+  eventAbbreviation?: string;
+  gamesPlayed?: number;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get("eventId");
 
-    let players: any[] = [];
+    let players: PlayerRanking[] = [];
 
     if (eventId) {
-      // Get event-specific rankings - only players who have ratings for this event
+      // Get event-specific rankings with optimized batch queries
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      // Fetch all event ratings with player data in one query
       const eventRatings = await prisma.eventRating.findMany({
         where: {
           eventId: eventId,
@@ -36,86 +83,145 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      // Calculate trend for event-specific ratings
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      // Get all player IDs for batch queries
+      const playerIds = eventRatings.map((er) => er.playerId);
 
-      players = await Promise.all(
-        eventRatings.map(async (eventRating, currentIndex) => {
-          // Get Elo history for this player within the last 24 hours for this event
-          const recentHistory = await prisma.eloHistory.findMany({
+      // Batch fetch all related data
+      const [eloHistoryData, captainData, teamMembershipData] =
+        await Promise.all([
+          // Fetch all Elo history for these players in one query
+          prisma.eloHistory.findMany({
             where: {
-              playerId: eventRating.playerId,
+              playerId: { in: playerIds },
               eventId: eventId,
-              timestamp: {
-                gte: twentyFourHoursAgo,
-              },
+              timestamp: { gte: twentyFourHoursAgo },
             },
-            orderBy: {
-              timestamp: "desc",
+            select: {
+              playerId: true,
+              oldRating: true,
+              newRating: true,
             },
-          });
-
-          let trend = 0;
-          if (recentHistory.length > 0) {
-            const totalRatingChange = recentHistory.reduce((total, entry) => {
-              return total + (entry.newRating - entry.oldRating);
-            }, 0);
-            trend =
-              Math.sign(totalRatingChange) *
-              Math.min(Math.abs(totalRatingChange) / 100, 5);
-          }
-
-          // Get captain status
-          const captainedTeams = await prisma.team.findMany({
+          }),
+          // Fetch all captain data in one query
+          prisma.team.findMany({
             where: {
-              captainId: eventRating.playerId,
+              captainId: { in: playerIds },
             },
             select: {
               id: true,
               name: true,
+              captainId: true,
             },
-          });
-
-          // Get team membership
-          const teamMembership = await prisma.teamMember.findFirst({
+          }),
+          // Fetch all team memberships in one query
+          prisma.teamMember.findMany({
             where: {
-              playerId: eventRating.playerId,
+              playerId: { in: playerIds },
             },
-          });
+            select: {
+              playerId: true,
+              teamId: true,
+            },
+          }),
+        ]);
 
-          // Get team info if player is on a team
-          let teamInfo = null;
-          if (teamMembership) {
-            const team = await prisma.team.findUnique({
-              where: { id: teamMembership.teamId },
-              select: {
-                id: true,
-                name: true,
-                color: true,
-                abbreviation: true,
-              },
-            });
-            teamInfo = team;
-          }
-
-          return {
-            id: eventRating.player.id,
-            name: eventRating.player.name,
-            eloRating: eventRating.rating,
-            experience: eventRating.player.experience || 0,
-            rank: currentIndex + 1,
-            trend: Math.round(trend),
-            captainedTeams,
-            team: teamInfo,
-            eventId: eventRating.event.id,
-            eventName: eventRating.event.name,
-            eventAbbreviation: eventRating.event.abbreviation,
-            gamesPlayed: eventRating.gamesPlayed,
-          };
-        })
+      // Fetch team data separately since it depends on teamMembershipData
+      const teamIds = teamMembershipData.map(
+        (tm: TeamMembershipData) => tm.teamId
       );
+      const teamData = await prisma.team.findMany({
+        where: {
+          id: { in: teamIds },
+        },
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          abbreviation: true,
+        },
+      });
+
+      // Create lookup maps for O(1) access
+      const eloHistoryMap = new Map<string, EloHistoryEntry[]>();
+      eloHistoryData.forEach((entry: EloHistoryEntry) => {
+        if (!eloHistoryMap.has(entry.playerId)) {
+          eloHistoryMap.set(entry.playerId, []);
+        }
+        eloHistoryMap.get(entry.playerId)!.push(entry);
+      });
+
+      const captainMap = new Map<string, CaptainData>();
+      captainData.forEach((team: CaptainData) => {
+        if (team.captainId) {
+          captainMap.set(team.captainId, team);
+        }
+      });
+
+      const teamMembershipMap = new Map<string, string>();
+      teamMembershipData.forEach((member: TeamMembershipData) => {
+        teamMembershipMap.set(member.playerId, member.teamId);
+      });
+
+      const teamMap = new Map<string, TeamData>();
+      teamData.forEach((team: TeamData) => {
+        teamMap.set(team.id, team);
+      });
+
+      // Process players with pre-fetched data
+      players = eventRatings.map((eventRating, currentIndex) => {
+        const playerId = eventRating.playerId;
+
+        // Calculate trend from pre-fetched data
+        const recentHistory = eloHistoryMap.get(playerId) || [];
+        let trend = 0;
+        if (recentHistory.length > 0) {
+          const totalRatingChange = recentHistory.reduce(
+            (total: number, entry: EloHistoryEntry) => {
+              return total + (entry.newRating - entry.oldRating);
+            },
+            0
+          );
+          trend =
+            Math.sign(totalRatingChange) *
+            Math.min(Math.abs(totalRatingChange) / 100, 5);
+        }
+
+        // Get captain status from pre-fetched data
+        const captainedTeams = captainMap.has(playerId)
+          ? [
+              {
+                id: captainMap.get(playerId)!.id,
+                name: captainMap.get(playerId)!.name,
+              },
+            ]
+          : [];
+
+        // Get team info from pre-fetched data
+        const teamMembership = teamMembershipMap.get(playerId);
+        const teamInfo = teamMembership
+          ? teamMap.get(teamMembership) || null
+          : null;
+
+        return {
+          id: eventRating.player.id,
+          name: eventRating.player.name,
+          eloRating: eventRating.rating,
+          experience: eventRating.player.experience || 0,
+          rank: currentIndex + 1,
+          trend: Math.round(trend),
+          captainedTeams,
+          team: teamInfo,
+          eventId: eventRating.event.id,
+          eventName: eventRating.event.name,
+          eventAbbreviation: eventRating.event.abbreviation,
+          gamesPlayed: eventRating.gamesPlayed,
+        };
+      });
     } else {
-      // Get overall rankings (average of all event ratings)
+      // Get overall rankings with optimized batch queries
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      // Fetch all players with their event ratings in one query
       const playersWithEventRatings = await prisma.player.findMany({
         select: {
           id: true,
@@ -149,79 +255,135 @@ export async function GET(request: NextRequest) {
         })
         .sort((a, b) => b.eloRating - a.eloRating);
 
-      // Calculate trend (ranking change over past 24 hours)
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      // Get all player IDs for batch queries
+      const playerIds = playersWithAverages.map((p) => p.id);
 
-      players = await Promise.all(
-        playersWithAverages.map(async (player, currentIndex) => {
-          // Get Elo history for this player within the last 24 hours (across all events)
-          const recentHistory = await prisma.eloHistory.findMany({
+      // Batch fetch all related data
+      const [eloHistoryData, captainData, teamMembershipData] =
+        await Promise.all([
+          // Fetch all Elo history for these players in one query
+          prisma.eloHistory.findMany({
             where: {
-              playerId: player.id,
-              timestamp: {
-                gte: twentyFourHoursAgo,
-              },
+              playerId: { in: playerIds },
+              timestamp: { gte: twentyFourHoursAgo },
             },
-            orderBy: {
-              timestamp: "desc",
+            select: {
+              playerId: true,
+              oldRating: true,
+              newRating: true,
             },
-          });
-
-          let trend = 0;
-          if (recentHistory.length > 0) {
-            const totalRatingChange = recentHistory.reduce((total, entry) => {
-              return total + (entry.newRating - entry.oldRating);
-            }, 0);
-            trend =
-              Math.sign(totalRatingChange) *
-              Math.min(Math.abs(totalRatingChange) / 100, 5);
-          }
-
-          // Get captain status
-          const captainedTeams = await prisma.team.findMany({
+          }),
+          // Fetch all captain data in one query
+          prisma.team.findMany({
             where: {
-              captainId: player.id,
+              captainId: { in: playerIds },
             },
             select: {
               id: true,
               name: true,
+              captainId: true,
             },
-          });
-
-          // Get team membership
-          const teamMembership = await prisma.teamMember.findFirst({
+          }),
+          // Fetch all team memberships in one query
+          prisma.teamMember.findMany({
             where: {
-              playerId: player.id,
+              playerId: { in: playerIds },
             },
-          });
+            select: {
+              playerId: true,
+              teamId: true,
+            },
+          }),
+        ]);
 
-          // Get team info if player is on a team
-          let teamInfo = null;
-          if (teamMembership) {
-            const team = await prisma.team.findUnique({
-              where: { id: teamMembership.teamId },
-              select: {
-                id: true,
-                name: true,
-                color: true,
-                abbreviation: true,
-              },
-            });
-            teamInfo = team;
-          }
-
-          return {
-            id: player.id,
-            name: player.name,
-            eloRating: player.eloRating,
-            experience: player.experience || 0,
-            rank: currentIndex + 1,
-            trend: Math.round(trend),
-            captainedTeams,
-            team: teamInfo,
-          };
-        })
+      // Fetch team data separately since it depends on teamMembershipData
+      const teamIds = teamMembershipData.map(
+        (tm: TeamMembershipData) => tm.teamId
       );
+      const teamData = await prisma.team.findMany({
+        where: {
+          id: { in: teamIds },
+        },
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          abbreviation: true,
+        },
+      });
+
+      // Create lookup maps for O(1) access
+      const eloHistoryMap = new Map<string, EloHistoryEntry[]>();
+      eloHistoryData.forEach((entry: EloHistoryEntry) => {
+        if (!eloHistoryMap.has(entry.playerId)) {
+          eloHistoryMap.set(entry.playerId, []);
+        }
+        eloHistoryMap.get(entry.playerId)!.push(entry);
+      });
+
+      const captainMap = new Map<string, CaptainData>();
+      captainData.forEach((team: CaptainData) => {
+        if (team.captainId) {
+          captainMap.set(team.captainId, team);
+        }
+      });
+
+      const teamMembershipMap = new Map<string, string>();
+      teamMembershipData.forEach((member: TeamMembershipData) => {
+        teamMembershipMap.set(member.playerId, member.teamId);
+      });
+
+      const teamMap = new Map<string, TeamData>();
+      teamData.forEach((team: TeamData) => {
+        teamMap.set(team.id, team);
+      });
+
+      // Process players with pre-fetched data
+      players = playersWithAverages.map((player, currentIndex) => {
+        const playerId = player.id;
+
+        // Calculate trend from pre-fetched data
+        const recentHistory = eloHistoryMap.get(playerId) || [];
+        let trend = 0;
+        if (recentHistory.length > 0) {
+          const totalRatingChange = recentHistory.reduce(
+            (total: number, entry: EloHistoryEntry) => {
+              return total + (entry.newRating - entry.oldRating);
+            },
+            0
+          );
+          trend =
+            Math.sign(totalRatingChange) *
+            Math.min(Math.abs(totalRatingChange) / 100, 5);
+        }
+
+        // Get captain status from pre-fetched data
+        const captainedTeams = captainMap.has(playerId)
+          ? [
+              {
+                id: captainMap.get(playerId)!.id,
+                name: captainMap.get(playerId)!.name,
+              },
+            ]
+          : [];
+
+        // Get team info from pre-fetched data
+        const teamMembership = teamMembershipMap.get(playerId);
+        const teamInfo = teamMembership
+          ? teamMap.get(teamMembership) || null
+          : null;
+
+        return {
+          id: player.id,
+          name: player.name,
+          eloRating: player.eloRating,
+          experience: player.experience || 0,
+          rank: currentIndex + 1,
+          trend: Math.round(trend),
+          captainedTeams,
+          team: teamInfo,
+        };
+      });
     }
 
     return NextResponse.json({ players });
