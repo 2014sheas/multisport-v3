@@ -46,11 +46,90 @@ interface PlayerRanking {
   gamesPlayed?: number;
 }
 
+interface MaterializedViewPlayer {
+  id: string;
+  name: string;
+  experience: number;
+  eloRating: number;
+  elo_rating: number;
+  team_id: string | null;
+  team_name: string | null;
+  team_color: string | null;
+  team_abbreviation: string | null;
+  is_captain: boolean;
+  event_count: number;
+  events_participated: number;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get("eventId");
+    const useFastPath = searchParams.get("fast") === "true";
 
+    // Ultra-fast path using materialized view (recommended for production)
+    if (useFastPath) {
+      console.log("🚀 Using ultra-fast materialized view path");
+
+      const startTime = Date.now();
+
+      // Single query to get all rankings data
+      const rankingsData = await prisma.$queryRaw<MaterializedViewPlayer[]>`
+        SELECT 
+          id,
+          name,
+          experience,
+          "eloRating",
+          "avg_event_rating" as elo_rating,
+          "team_id",
+          "team_name",
+          "team_color",
+          "team_abbreviation",
+          "is_captain",
+          "event_count",
+          "events_participated"
+        FROM player_rankings_mv
+        ORDER BY "avg_event_rating" DESC, "eloRating" DESC
+      `;
+
+      // Process the data into the expected format
+      const players = rankingsData.map(
+        (player: MaterializedViewPlayer, index: number) => ({
+          id: player.id,
+          name: player.name,
+          eloRating: player.elo_rating || player.eloRating,
+          experience: player.experience || 0,
+          rank: index + 1,
+          trend: 0, // Materialized view doesn't include trend, would need separate calculation
+          captainedTeams: player.is_captain
+            ? [{ id: player.team_id, name: player.team_name }]
+            : [],
+          team: player.team_id
+            ? {
+                id: player.team_id,
+                name: player.team_name,
+                color: player.team_color,
+                abbreviation: player.team_abbreviation,
+              }
+            : null,
+          gamesPlayed: player.event_count || 0,
+        })
+      );
+
+      const queryTime = Date.now() - startTime;
+      console.log(`⚡ Materialized view query completed in ${queryTime}ms`);
+
+      return NextResponse.json({
+        players,
+        performance: {
+          method: "materialized_view",
+          queryTime: `${queryTime}ms`,
+          optimization: "ultra_fast",
+        },
+      });
+    }
+
+    // Original optimized path (fallback)
     let players: PlayerRanking[] = [];
 
     if (eventId) {
@@ -386,7 +465,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ players });
+    return NextResponse.json({
+      players,
+      performance: {
+        method: "optimized_batch_queries",
+        optimization: "high_performance",
+      },
+    });
   } catch (error) {
     console.error("Error fetching rankings:", error);
     return NextResponse.json(
