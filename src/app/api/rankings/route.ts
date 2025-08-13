@@ -250,47 +250,21 @@ export async function GET(request: NextRequest) {
       players = eventRatings.map((eventRating, currentIndex) => {
         const playerId = eventRating.playerId;
 
-        // Calculate trend from pre-fetched data - show ranking position changes
+        // Calculate trend from pre-fetched data - show raw rating change over 24h
         const recentHistory = eloHistoryMap.get(playerId) || [];
         let trend = 0;
 
         if (recentHistory.length > 0) {
-          // Get the player's current rank
-          const currentRank = currentIndex + 1;
+          // Simple: sum up all rating changes in the past 24 hours
+          const totalRatingChange = recentHistory.reduce(
+            (total: number, entry: EloHistoryEntry) => {
+              return total + (entry.newRating - entry.oldRating);
+            },
+            0
+          );
 
-          // Calculate what their rank would have been 24 hours ago
-          // by temporarily removing recent rating changes
-          const player = eventRatings.find((er) => er.playerId === playerId);
-          if (player) {
-            // Calculate what their rating was 24 hours ago
-            const totalRatingChange = recentHistory.reduce(
-              (total: number, entry: EloHistoryEntry) => {
-                return total + (entry.newRating - entry.oldRating);
-              },
-              0
-            );
-
-            // Their rating 24 hours ago
-            const previousRating = player.rating - totalRatingChange;
-
-            // Find their previous rank by sorting all players with their old ratings
-            const playersWithPreviousRatings = eventRatings.map((er) => {
-              if (er.playerId === playerId) {
-                return { ...er, rating: previousRating };
-              }
-              return er;
-            });
-
-            // Sort by previous ratings to get previous rank
-            playersWithPreviousRatings.sort((a, b) => b.rating - a.rating);
-            const previousRank =
-              playersWithPreviousRatings.findIndex(
-                (er) => er.playerId === playerId
-              ) + 1;
-
-            // Calculate trend: positive = moved up, negative = moved down
-            trend = previousRank - currentRank;
-          }
+          // Round to nearest integer for clean display
+          trend = Math.round(totalRatingChange);
         }
 
         // Get captain status from pre-fetched data
@@ -449,48 +423,21 @@ export async function GET(request: NextRequest) {
       players = playersWithAverages.map((player, currentIndex) => {
         const playerId = player.id;
 
-        // Calculate trend from pre-fetched data - show ranking position changes
+        // Calculate trend from pre-fetched data - show raw rating change over 24h
         const recentHistory = eloHistoryMap.get(playerId) || [];
         let trend = 0;
 
         if (recentHistory.length > 0) {
-          // Get the player's current rank
-          const currentRank = currentIndex + 1;
+          // Simple: sum up all rating changes in the past 24 hours
+          const totalRatingChange = recentHistory.reduce(
+            (total: number, entry: EloHistoryEntry) => {
+              return total + (entry.newRating - entry.oldRating);
+            },
+            0
+          );
 
-          // Calculate what their rank would have been 24 hours ago
-          // by temporarily removing recent rating changes
-          const player = playersWithAverages.find((p) => p.id === playerId);
-          if (player) {
-            // Calculate what their rating was 24 hours ago
-            const totalRatingChange = recentHistory.reduce(
-              (total: number, entry: EloHistoryEntry) => {
-                return total + (entry.newRating - entry.oldRating);
-              },
-              0
-            );
-
-            // Their rating 24 hours ago
-            const previousRating = player.eloRating - totalRatingChange;
-
-            // Find their previous rank by sorting all players with their old ratings
-            const playersWithPreviousRatings = playersWithAverages.map((p) => {
-              if (p.id === playerId) {
-                return { ...p, eloRating: previousRating };
-              }
-              return p;
-            });
-
-            // Sort by previous ratings to get previous rank
-            playersWithPreviousRatings.sort(
-              (a, b) => b.eloRating - a.eloRating
-            );
-            const previousRank =
-              playersWithPreviousRatings.findIndex((p) => p.id === playerId) +
-              1;
-
-            // Calculate trend: positive = moved up, negative = moved down
-            trend = previousRank - currentRank;
-          }
+          // Round to nearest integer for clean display
+          trend = Math.round(totalRatingChange);
         }
 
         // Get captain status from pre-fetched data
