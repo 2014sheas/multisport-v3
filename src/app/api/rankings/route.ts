@@ -49,16 +49,16 @@ interface PlayerRanking {
 interface MaterializedViewPlayer {
   id: string;
   name: string;
-  experience: number;
-  eloRating: number;
-  elo_rating: number;
+  experience: bigint;
+  eloRating: bigint;
+  elo_rating: bigint;
   team_id: string | null;
   team_name: string | null;
   team_color: string | null;
   team_abbreviation: string | null;
   is_captain: boolean;
-  event_count: number;
-  events_participated: number;
+  event_count: bigint;
+  events_participated: bigint;
 }
 
 export async function GET(request: NextRequest) {
@@ -97,8 +97,8 @@ export async function GET(request: NextRequest) {
         (player: MaterializedViewPlayer, index: number) => ({
           id: player.id,
           name: player.name,
-          eloRating: player.elo_rating || player.eloRating,
-          experience: player.experience || 0,
+          eloRating: Number(player.elo_rating || player.eloRating),
+          experience: Number(player.experience || 0),
           rank: index + 1,
           trend: 0, // Materialized view doesn't include trend, would need separate calculation
           captainedTeams: player.is_captain
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
                 abbreviation: player.team_abbreviation,
               }
             : null,
-          gamesPlayed: player.event_count || 0,
+          gamesPlayed: Number(player.event_count || 0),
         })
       );
 

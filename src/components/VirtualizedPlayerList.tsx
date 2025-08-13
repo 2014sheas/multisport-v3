@@ -1,15 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Star,
-  Heart,
-  ArrowRight,
-  Trash2,
-} from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { TrendingUp, TrendingDown, Minus, Star } from "lucide-react";
 
 interface Player {
   id: string;
@@ -43,7 +35,6 @@ export default function VirtualizedPlayerList({
   containerHeight = 600,
 }: VirtualizedPlayerListProps) {
   const [scrollTop, setScrollTop] = useState(0);
-  const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
 
   // Calculate visible range
   const visibleRange = useMemo(() => {
@@ -236,7 +227,6 @@ export default function VirtualizedPlayerList({
 
       {/* Virtualized List */}
       <div
-        ref={setContainerRef}
         className="overflow-auto"
         style={{ height: containerHeight }}
         onScroll={handleScroll}

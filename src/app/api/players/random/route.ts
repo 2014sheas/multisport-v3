@@ -35,97 +35,163 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    let players: any[] = [];
+    let players: Array<{
+      id: string;
+      name: string;
+      eloRating: number;
+      experience: number;
+    }> = [];
 
     if (eventId) {
-      // Get random players with event-specific ratings using optimized random selection
-      const eventRatings = await prisma.$queryRaw`
-        WITH random_players AS (
+      // Get random players with event-specific ratings using improved random selection
+      const excludeClause =
+        excludePlayerIds.length > 0
+          ? `AND p.id NOT IN (${excludePlayerIds
+              .map((id) => `'${id}'`)
+              .join(",")})`
+          : "";
+
+      // First, get the total count of available players after exclusions
+      const availableCount = await prisma.$queryRawUnsafe<[{ count: bigint }]>(
+        `
+        SELECT COUNT(*) as count
+        FROM players p
+        LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = $1
+        WHERE p."isActive" = true
+        ${excludeClause}
+      `,
+        eventId
+      );
+
+      const totalAvailable = Number(availableCount[0].count);
+
+      if (totalAvailable < playerCount) {
+        // If not enough players available, return all available players
+        const allAvailable = await prisma.$queryRawUnsafe<
+          Array<{
+            id: string;
+            name: string;
+            eloRating: number;
+            experience: number;
+          }>
+        >(
+          `
           SELECT 
             p.id, 
             p.name, 
             p.experience,
-            COALESCE(er.rating, p."eloRating") as "eloRating",
-            ROW_NUMBER() OVER (ORDER BY p."eloRating" DESC) as rn
+            COALESCE(er.rating, p."eloRating") as "eloRating"
           FROM players p
-          LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = ${eventId}
+          LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = $1
           WHERE p."isActive" = true
-          ${
-            excludePlayerIds.length > 0
-              ? `AND p.id NOT IN (${excludePlayerIds
-                  .map((id) => `'${id}'`)
-                  .join(",")})`
-              : ""
-          }
-        )
-        SELECT 
-          id, 
-          name, 
-          experience,
-          "eloRating"
-        FROM random_players
-        WHERE rn IN (
-          SELECT FLOOR(RANDOM() * (SELECT COUNT(*) FROM random_players)) + 1
-          FROM generate_series(1, ${playerCount})
-        )
-        LIMIT ${playerCount}
-      `;
-      players = eventRatings as any[];
+          ${excludeClause}
+          ORDER BY RANDOM()
+        `,
+          eventId
+        );
+
+        players = allAvailable;
+      } else {
+        // Use improved random selection for better distribution
+        const eventRatings = await prisma.$queryRawUnsafe<
+          Array<{
+            id: string;
+            name: string;
+            eloRating: number;
+            experience: number;
+          }>
+        >(
+          `
+          SELECT 
+            p.id, 
+            p.name, 
+            p.experience,
+            COALESCE(er.rating, p."eloRating") as "eloRating"
+          FROM players p
+          LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = $1
+          WHERE p."isActive" = true
+          ${excludeClause}
+          ORDER BY RANDOM()
+          LIMIT $2
+        `,
+          eventId,
+          playerCount
+        );
+
+        players = eventRatings;
+      }
     } else {
-      // Get random players using overall ratings with optimized random selection
-      const randomPlayers = await prisma.$queryRaw`
-        WITH random_players AS (
+      // Get random players using overall ratings with improved random selection
+      const excludeClause =
+        excludePlayerIds.length > 0
+          ? `AND id NOT IN (${excludePlayerIds
+              .map((id) => `'${id}'`)
+              .join(",")})`
+          : "";
+
+      // First, get the total count of available players after exclusions
+      const availableCount = await prisma.$queryRawUnsafe<[{ count: bigint }]>(`
+        SELECT COUNT(*) as count
+        FROM players 
+        WHERE "isActive" = true
+        ${excludeClause}
+      `);
+
+      const totalAvailable = Number(availableCount[0].count);
+
+      if (totalAvailable < playerCount) {
+        // If not enough players available, return all available players
+        const allAvailable = await prisma.$queryRawUnsafe<
+          Array<{
+            id: string;
+            name: string;
+            eloRating: number;
+            experience: number;
+          }>
+        >(`
           SELECT 
             id, 
             name, 
             "eloRating", 
-            experience,
-            ROW_NUMBER() OVER (ORDER BY "eloRating" DESC) as rn
+            experience
           FROM players 
           WHERE "isActive" = true
-          ${
-            excludePlayerIds.length > 0
-              ? `AND id NOT IN (${excludePlayerIds
-                  .map((id) => `'${id}'`)
-                  .join(",")})`
-              : ""
-          }
-        )
-        SELECT 
-          id, 
-          name, 
-          "eloRating", 
-          experience
-        FROM random_players
-        WHERE rn IN (
-          SELECT FLOOR(RANDOM() * (SELECT COUNT(*) FROM random_players)) + 1
-          FROM generate_series(1, ${playerCount})
-        )
-        LIMIT ${playerCount}
-      `;
-      players = randomPlayers as any[];
+          ${excludeClause}
+          ORDER BY RANDOM()
+        `);
+
+        players = allAvailable;
+      } else {
+        // Use simple random selection for better distribution
+        const randomPlayers = await prisma.$queryRawUnsafe<
+          Array<{
+            id: string;
+            name: string;
+            eloRating: number;
+            experience: number;
+          }>
+        >(
+          `
+          SELECT 
+            id, 
+            name, 
+            "eloRating", 
+            experience
+          FROM players 
+          WHERE "isActive" = true
+          ${excludeClause}
+          ORDER BY RANDOM()
+          LIMIT $1
+        `,
+          playerCount
+        );
+
+        players = randomPlayers;
+      }
     }
 
-    // If we didn't get enough players due to exclusion, fill with additional random players
-    if (players.length < playerCount && excludePlayerIds.length > 0) {
-      const additionalPlayers = await prisma.$queryRaw`
-        SELECT 
-          p.id, 
-          p.name, 
-          p.experience,
-          COALESCE(er.rating, p."eloRating") as "eloRating"
-        FROM players p
-        LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = ${
-          eventId || "NULL"
-        }
-        WHERE p."isActive" = true
-        AND p.id NOT IN (${excludePlayerIds.map((id) => `'${id}'`).join(",")})
-        ORDER BY RANDOM()
-        LIMIT ${playerCount - players.length}
-      `;
-
-      players = [...players, ...(additionalPlayers as any[])];
-    }
+    // Remove the fallback logic since we now handle insufficient players above
+    // if (players.length < playerCount && excludePlayerIds.length > 0) { ... }
 
     return NextResponse.json({
       players,
