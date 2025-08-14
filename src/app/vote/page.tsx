@@ -602,7 +602,7 @@ export default function VotePage() {
                         Loading new players...
                       </div>
                     ) : (
-                      "I don&apos;t know all of these players (skip)"
+                      "I don't know all of these players (skip)"
                     )}
                   </button>
                 </div>
