@@ -40,6 +40,12 @@ export async function GET(request: NextRequest) {
       name: string;
       eloRating: number;
       experience: number;
+      team?: {
+        id: string;
+        name: string;
+        color: string;
+        abbreviation?: string;
+      } | null;
     }> = [];
 
     if (eventId) {
@@ -73,6 +79,12 @@ export async function GET(request: NextRequest) {
             name: string;
             eloRating: number;
             experience: number;
+            team?: {
+              id: string;
+              name: string;
+              color: string;
+              abbreviation?: string;
+            } | null;
           }>
         >(
           `
@@ -80,9 +92,15 @@ export async function GET(request: NextRequest) {
             p.id, 
             p.name, 
             p.experience,
-            COALESCE(er.rating, p."eloRating") as "eloRating"
+            COALESCE(er.rating, p."eloRating") as "eloRating",
+            t.id as "teamId",
+            t.name as "teamName",
+            t.color as "teamColor",
+            t.abbreviation as "teamAbbreviation"
           FROM players p
           LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = $1
+          LEFT JOIN team_members tm ON p.id = tm."playerId"
+          LEFT JOIN teams t ON tm."teamId" = t.id
           WHERE p."isActive" = true
           ${excludeClause}
           ORDER BY RANDOM()
@@ -99,6 +117,12 @@ export async function GET(request: NextRequest) {
             name: string;
             eloRating: number;
             experience: number;
+            team?: {
+              id: string;
+              name: string;
+              color: string;
+              abbreviation?: string;
+            } | null;
           }>
         >(
           `
@@ -106,9 +130,15 @@ export async function GET(request: NextRequest) {
             p.id, 
             p.name, 
             p.experience,
-            COALESCE(er.rating, p."eloRating") as "eloRating"
+            COALESCE(er.rating, p."eloRating") as "eloRating",
+            t.id as "teamId",
+            t.name as "teamName",
+            t.color as "teamColor",
+            t.abbreviation as "teamAbbreviation"
           FROM players p
           LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = $1
+          LEFT JOIN team_members tm ON p.id = tm."playerId"
+          LEFT JOIN teams t ON tm."teamId" = t.id
           WHERE p."isActive" = true
           ${excludeClause}
           ORDER BY RANDOM()
@@ -124,7 +154,7 @@ export async function GET(request: NextRequest) {
       // Get random players using overall ratings with improved random selection
       const excludeClause =
         excludePlayerIds.length > 0
-          ? `AND id NOT IN (${excludePlayerIds
+          ? `AND p.id NOT IN (${excludePlayerIds
               .map((id) => `'${id}'`)
               .join(",")})`
           : "";
@@ -147,15 +177,27 @@ export async function GET(request: NextRequest) {
             name: string;
             eloRating: number;
             experience: number;
+            team?: {
+              id: string;
+              name: string;
+              color: string;
+              abbreviation?: string;
+            } | null;
           }>
         >(`
           SELECT 
-            id, 
-            name, 
-            "eloRating", 
-            experience
-          FROM players 
-          WHERE "isActive" = true
+            p.id, 
+            p.name, 
+            p."eloRating", 
+            p.experience,
+            t.id as "teamId",
+            t.name as "teamName",
+            t.color as "teamColor",
+            t.abbreviation as "teamAbbreviation"
+          FROM players p
+          LEFT JOIN team_members tm ON p.id = tm."playerId"
+          LEFT JOIN teams t ON tm."teamId" = t.id
+          WHERE p."isActive" = true
           ${excludeClause}
           ORDER BY RANDOM()
         `);
@@ -169,16 +211,28 @@ export async function GET(request: NextRequest) {
             name: string;
             eloRating: number;
             experience: number;
+            team?: {
+              id: string;
+              name: string;
+              color: string;
+              abbreviation?: string;
+            } | null;
           }>
         >(
           `
           SELECT 
-            id, 
-            name, 
-            "eloRating", 
-            experience
-          FROM players 
-          WHERE "isActive" = true
+            p.id, 
+            p.name, 
+            p."eloRating", 
+            p.experience,
+            t.id as "teamId",
+            t.name as "teamName",
+            t.color as "teamColor",
+            t.abbreviation as "teamAbbreviation"
+          FROM players p
+          LEFT JOIN team_members tm ON p.id = tm."playerId"
+          LEFT JOIN teams t ON tm."teamId" = t.id
+          WHERE p."isActive" = true
           ${excludeClause}
           ORDER BY RANDOM()
           LIMIT $1
@@ -190,11 +244,38 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Transform the raw SQL results to include properly formatted team data
+    const transformedPlayers = players.map(
+      (player: {
+        id: string;
+        name: string;
+        eloRating: number;
+        experience: number;
+        teamId?: string;
+        teamName?: string;
+        teamColor?: string;
+        teamAbbreviation?: string;
+      }) => ({
+        id: player.id,
+        name: player.name,
+        eloRating: player.eloRating,
+        experience: player.experience,
+        team: player.teamId
+          ? {
+              id: player.teamId,
+              name: player.teamName,
+              color: player.teamColor || "#3B82F6",
+              abbreviation: player.teamAbbreviation,
+            }
+          : null,
+      })
+    );
+
     // Remove the fallback logic since we now handle insufficient players above
     // if (players.length < playerCount && excludePlayerIds.length > 0) { ... }
 
     return NextResponse.json({
-      players,
+      players: transformedPlayers,
       totalAvailable: totalActivePlayers - excludePlayerIds.length,
       performance: {
         method: "optimized_random_selection",

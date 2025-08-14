@@ -93,27 +93,29 @@ export default function TeamsPage() {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {team.members.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                    >
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900">
-                          {member.name}
+                  {team.members
+                    .sort((a, b) => b.rating - a.rating)
+                    .map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                      >
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-900">
+                            {member.name}
+                          </span>
+                          {team.captain && team.captain.id === member.id && (
+                            <Star
+                              className="w-4 h-4 text-yellow-500 ml-1"
+                              fill="currentColor"
+                            />
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {member.rating}
                         </span>
-                        {team.captain && team.captain.id === member.id && (
-                          <Star
-                            className="w-4 h-4 text-yellow-500 ml-1"
-                            fill="currentColor"
-                          />
-                        )}
                       </div>
-                      <span className="text-xs text-gray-500">
-                        {member.rating}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </div>

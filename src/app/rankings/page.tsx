@@ -3,19 +3,15 @@
 import { useState, useEffect } from "react";
 import {
   TrendingUp,
-  Vote,
-  X,
   Check,
   XCircle,
   Star,
   TrendingDown,
   Minus,
-  Heart,
-  ArrowRight,
-  Trash2,
   Filter,
   Users,
   Calendar,
+  Vote,
 } from "lucide-react";
 
 interface Player {
@@ -60,8 +56,6 @@ interface Event {
   createdAt: string;
   updatedAt: string;
 }
-
-type VoteSelection = "keep" | "trade" | "cut";
 
 // Fallback colors for teams that don't have colors set in the database
 const fallbackTeamColors: Record<string, string> = {
@@ -112,14 +106,6 @@ export default function RankingsPage() {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showVoteModal, setShowVoteModal] = useState(false);
-  const [votingPlayers, setVotingPlayers] = useState<Player[]>([]);
-  const [voteSelections, setVoteSelections] = useState<
-    Record<string, VoteSelection | null>
-  >({});
-  const [voting, setVoting] = useState(false);
-  const [voteMessage, setVoteMessage] = useState<string>("");
-  const [votingEventId, setVotingEventId] = useState<string>("");
 
   useEffect(() => {
     fetchEvents();
@@ -156,220 +142,6 @@ export default function RankingsPage() {
       setPlayers([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const startVoting = async () => {
-    try {
-      // If no event is selected, randomly choose one
-      let eventIdForVoting = selectedEventId;
-      let randomlySelectedEvent = null;
-
-      if (!eventIdForVoting) {
-        // Randomly select an event
-        const randomIndex = Math.floor(Math.random() * events.length);
-        randomlySelectedEvent = events[randomIndex];
-        eventIdForVoting = randomlySelectedEvent.id;
-      }
-
-      setVotingEventId(eventIdForVoting);
-
-      // Fetch random players with event-specific ratings
-      const url = `/api/players/random?eventId=${eventIdForVoting}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setVotingPlayers(data.players);
-      setVoteSelections({});
-      setVoteMessage("");
-      setShowVoteModal(true);
-    } catch (error) {
-      console.error("Error fetching random players:", error);
-    }
-  };
-
-  const handlePlayerSelection = (
-    playerId: string,
-    selection: VoteSelection
-  ) => {
-    // Clear any existing selection for this player
-    const newSelections = { ...voteSelections };
-
-    // If this player was already selected with this choice, deselect it
-    if (newSelections[playerId] === selection) {
-      newSelections[playerId] = null;
-    } else {
-      // Clear any other player that had this selection
-      Object.keys(newSelections).forEach((id) => {
-        if (newSelections[id] === selection) {
-          newSelections[id] = null;
-        }
-      });
-      // Set the new selection
-      newSelections[playerId] = selection;
-    }
-
-    setVoteSelections(newSelections);
-  };
-
-  const canSubmitVote = () => {
-    const selections = Object.values(voteSelections).filter(Boolean);
-    return (
-      selections.length === 3 &&
-      selections.includes("keep") &&
-      selections.includes("trade") &&
-      selections.includes("cut")
-    );
-  };
-
-  const getVoteData = () => {
-    const keepId = Object.keys(voteSelections).find(
-      (id) => voteSelections[id] === "keep"
-    );
-    const tradeId = Object.keys(voteSelections).find(
-      (id) => voteSelections[id] === "trade"
-    );
-    const cutId = Object.keys(voteSelections).find(
-      (id) => voteSelections[id] === "cut"
-    );
-
-    return { keepId, tradeId, cutId };
-  };
-
-  const submitVote = async () => {
-    if (!canSubmitVote()) {
-      setVoteMessage(
-        "Please select one player to keep, one player to trade, and one player to cut"
-      );
-      return;
-    }
-
-    const { keepId, tradeId, cutId } = getVoteData();
-
-    if (!keepId || !tradeId || !cutId) {
-      setVoteMessage("Invalid vote selection");
-      return;
-    }
-
-    // Ensure we have a valid eventId
-    let eventIdForVoting = votingEventId;
-    if (!eventIdForVoting && events.length > 0) {
-      // If no event is selected, randomly choose one
-      const randomIndex = Math.floor(Math.random() * events.length);
-      eventIdForVoting = events[randomIndex].id;
-      setVotingEventId(eventIdForVoting);
-    }
-
-    if (!eventIdForVoting) {
-      setVoteMessage("No event selected for voting");
-      return;
-    }
-
-    setVoting(true);
-    setVoteMessage("");
-
-    try {
-      const response = await fetch("/api/vote", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          voterSession: `session_${Date.now()}`, // Generate a unique session
-          keepId,
-          tradeId,
-          cutId,
-          eventId: eventIdForVoting,
-        }),
-      });
-
-      if (response.ok) {
-        setVoteMessage("Vote submitted successfully!");
-
-        // Clear selections and fetch new random players after a short delay
-        setTimeout(async () => {
-          setVoteSelections({});
-          setVoteMessage("");
-
-          try {
-            // If no specific event was selected in the main view, randomize a new event
-            let newEventId = eventIdForVoting;
-            if (!selectedEventId && events.length > 0) {
-              // Randomly select a new event for the next voting round
-              const randomIndex = Math.floor(Math.random() * events.length);
-              newEventId = events[randomIndex].id;
-              setVotingEventId(newEventId);
-            }
-
-            const newResponse = await fetch(
-              `/api/players/random?eventId=${newEventId}`
-            );
-            const newData = await newResponse.json();
-            setVotingPlayers(newData.players);
-
-            // Refresh rankings in the background
-            fetchRankings();
-          } catch (error) {
-            console.error("Error fetching new random players:", error);
-            setVoteMessage("Error loading new players");
-          }
-        }, 300); // Very fast transition - just enough time to see the success message
-      } else {
-        const errorData = await response.json();
-        setVoteMessage(errorData.error || "Failed to submit vote");
-      }
-    } catch (error) {
-      console.error("Error submitting vote:", error);
-      setVoteMessage("Failed to submit vote");
-    } finally {
-      setVoting(false);
-    }
-  };
-
-  const handleVotingEventChange = async (newEventId: string) => {
-    // Ensure we always have a valid event selected
-    if (!newEventId && events.length > 0) {
-      // If no event is selected, randomly choose one
-      const randomIndex = Math.floor(Math.random() * events.length);
-      newEventId = events[randomIndex].id;
-    }
-
-    setVotingEventId(newEventId);
-    try {
-      // Fetch new random players for the selected event
-      const url = `/api/players/random?eventId=${newEventId}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setVotingPlayers(data.players);
-      setVoteSelections({});
-      setVoteMessage("");
-    } catch (error) {
-      console.error("Error fetching random players for event:", error);
-    }
-  };
-
-  const getSelectionIcon = (selection: VoteSelection) => {
-    switch (selection) {
-      case "keep":
-        return <Heart className="w-5 h-5 text-green-600" fill="currentColor" />;
-      case "trade":
-        return <ArrowRight className="w-5 h-5 text-yellow-600" />;
-      case "cut":
-        return <Trash2 className="w-5 h-5 text-red-600" />;
-      default:
-        return null;
-    }
-  };
-
-  const getSelectionLabel = (selection: VoteSelection) => {
-    switch (selection) {
-      case "keep":
-        return "Keep";
-      case "trade":
-        return "Trade";
-      case "cut":
-        return "Cut";
-      default:
-        return "";
     }
   };
 
@@ -412,12 +184,6 @@ export default function RankingsPage() {
         </div>
       );
     }
-  };
-
-  const getSelectedEventName = () => {
-    if (!votingEventId) return "Random Event";
-    const event = events.find((e) => e.id === votingEventId);
-    return event ? `${event.symbol} ${event.name}` : "Random Event";
   };
 
   if (loading) {
@@ -485,13 +251,19 @@ export default function RankingsPage() {
           </div>
         )}
 
-        <button
-          onClick={startVoting}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base"
-        >
-          <Vote className="w-4 h-4 mr-2" />
-          Rank Players
-        </button>
+        {/* Voting Button */}
+        <div className="text-center mb-6">
+          <a
+            href="/vote"
+            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base font-medium shadow-sm hover:shadow-md"
+          >
+            <Vote className="w-5 h-5 mr-2" />
+            Vote on Players
+          </a>
+          <p className="text-xs text-gray-500 mt-2">
+            Help rank players by participating in the voting system
+          </p>
+        </div>
       </div>
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -621,180 +393,6 @@ export default function RankingsPage() {
           {selectedEventId && " for the selected event"}
         </p>
       </div>
-
-      {/* Voting Modal */}
-      {showVoteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-gray-900">
-                Keep-Trade-Cut Vote
-              </h3>
-              <button
-                onClick={() => setShowVoteModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Event Selection for Voting */}
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Voting for:
-              </label>
-              <select
-                value={votingEventId}
-                onChange={(e) => handleVotingEventChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {events.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.symbol} {event.name}
-                  </option>
-                ))}
-              </select>
-              {!selectedEventId && votingEventId && (
-                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-xs text-blue-700">
-                    🎲 <strong>Randomly selected:</strong>{" "}
-                    {getSelectedEventName()}
-                    (You can change this above if you prefer a different event)
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="mb-3">
-              <p className="text-xs text-gray-600 mb-1">
-                Select your choices for these three players:
-              </p>
-              <div className="flex items-center space-x-3 text-xs text-gray-600">
-                <div className="flex items-center">
-                  <Heart
-                    className="w-3 h-3 text-green-600 mr-1"
-                    fill="currentColor"
-                  />
-                  <span>Keep (Best)</span>
-                </div>
-                <div className="flex items-center">
-                  <ArrowRight className="w-3 h-3 text-yellow-600 mr-1" />
-                  <span>Trade (Middle)</span>
-                </div>
-                <div className="flex items-center">
-                  <Trash2 className="w-3 h-3 text-red-600 mr-1" />
-                  <span>Cut (Worst)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2 mb-3">
-              {votingPlayers.map((player) => {
-                const selection = voteSelections[player.id];
-                return (
-                  <div
-                    key={player.id}
-                    className={`p-3 rounded-lg border transition-colors ${
-                      selection
-                        ? selection === "keep"
-                          ? "border-green-500 bg-green-50"
-                          : selection === "trade"
-                          ? "border-yellow-500 bg-yellow-50"
-                          : "border-red-500 bg-red-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className="text-sm font-semibold text-gray-900">
-                          {player.name}
-                        </h3>
-                        <p className="text-xs text-gray-600">
-                          {formatExperience(player.experience)}
-                        </p>
-                      </div>
-                      {selection && (
-                        <div className="flex items-center text-xs">
-                          {getSelectionIcon(selection)}
-                          <span className="ml-1 font-medium">
-                            {getSelectionLabel(selection)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-1">
-                      <button
-                        onClick={() => handlePlayerSelection(player.id, "keep")}
-                        className={`flex flex-col items-center justify-center p-2 rounded text-xs font-medium transition-colors ${
-                          selection === "keep"
-                            ? "bg-green-100 text-green-700 border border-green-500"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
-                        }`}
-                      >
-                        <Heart className="w-3 h-3 mb-0.5" />
-                        <span>Keep</span>
-                      </button>
-                      <button
-                        onClick={() =>
-                          handlePlayerSelection(player.id, "trade")
-                        }
-                        className={`flex flex-col items-center justify-center p-2 rounded text-xs font-medium transition-colors ${
-                          selection === "trade"
-                            ? "bg-yellow-100 text-yellow-700 border border-yellow-500"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
-                        }`}
-                      >
-                        <ArrowRight className="w-3 h-3 mb-0.5" />
-                        <span>Trade</span>
-                      </button>
-                      <button
-                        onClick={() => handlePlayerSelection(player.id, "cut")}
-                        className={`flex flex-col items-center justify-center p-2 rounded text-xs font-medium transition-colors ${
-                          selection === "cut"
-                            ? "bg-red-100 text-red-700 border border-red-500"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
-                        }`}
-                      >
-                        <Trash2 className="w-3 h-3 mb-0.5" />
-                        <span>Cut</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {voteMessage && (
-              <div
-                className={`mb-3 p-2 rounded text-xs ${
-                  voteMessage.includes("successfully")
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
-                {voteMessage}
-              </div>
-            )}
-
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setShowVoteModal(false)}
-                className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitVote}
-                disabled={voting || !canSubmitVote()}
-                className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {voting ? "Submitting..." : "Submit Vote"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
