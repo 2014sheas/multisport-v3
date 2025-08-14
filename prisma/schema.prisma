@@ -27,44 +27,45 @@ model User {
 }
 
 model Player {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   name           String
-  eloRating      Int          @default(5000)
-  gamesPlayed    Int          @default(0)
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  eloRating      Int           @default(5000)
+  gamesPlayed    Int           @default(0)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   experience     Int?
   wins           Int?
   draftPicks     DraftPick[]
   eloHistory     EloHistory[]
-  teamMembers    TeamMember[]
-  captainedTeams Team[]       @relation("TeamCaptain")
-  user           User?
-  votesAsCut     Vote[]       @relation("VoteCut")
-  votesAsKeep    Vote[]       @relation("VoteKeep")
-  votesAsTrade   Vote[]       @relation("VoteTrade")
   eventRatings   EventRating[]
+  teamMembers    TeamMember[]
+  captainedTeams Team[]        @relation("TeamCaptain")
+  user           User?
+  votesAsCut     Vote[]        @relation("VoteCut")
+  votesAsKeep    Vote[]        @relation("VoteKeep")
+  votesAsTrade   Vote[]        @relation("VoteTrade")
 
-  @@map("players")
   @@index([name])
-  @@index([eloRating])
-  @@index([isActive])
+  @@index([eloRating], map: "players_elo_rating_idx")
+  @@index([isActive], map: "players_is_active_idx")
+  @@map("players")
 }
 
 model Team {
   id           String       @id @default(cuid())
   name         String
-  abbreviation String?
   captainId    String?
   eloRating    Int          @default(5000)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   color        String       @default("#3B82F6")
+  abbreviation String?
   draftPicks   DraftPick[]
   members      TeamMember[]
   captain      Player?      @relation("TeamCaptain", fields: [captainId], references: [id])
 
+  @@index([captainId, id], map: "teams_captain_id_idx")
   @@map("teams")
 }
 
@@ -76,40 +77,30 @@ model TeamMember {
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@id([teamId, playerId])
+  @@index([playerId], map: "team_members_player_id_idx")
+  @@index([playerId, teamId], map: "team_members_player_team_idx")
+  @@index([teamId], map: "team_members_team_id_idx")
   @@map("team_members")
-  @@index([playerId])
-  @@index([teamId])
 }
 
 model Event {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   name           String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   abbreviation   String
-  symbol         String   // emoji
   eventType      EventType
-  status         EventStatus @default(UPCOMING)
-  startTime      DateTime?
+  finalStandings Json?
   location       String?
-  points         Int[]    // array of points for each place
-  finalStandings Json?    // JSON array of team IDs in final order
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  points         Int[]
+  startTime      DateTime?
+  status         EventStatus   @default(UPCOMING)
+  symbol         String
+  eloHistory     EloHistory[]
   eventRatings   EventRating[]
   votes          Vote[]
-  eloHistory     EloHistory[]
 
   @@map("events")
-}
-
-enum EventType {
-  TOURNAMENT
-  SCORED
-}
-
-enum EventStatus {
-  UPCOMING
-  IN_PROGRESS
-  COMPLETED
 }
 
 model DraftPick {
@@ -133,9 +124,14 @@ model EloHistory {
   newRating Int
   timestamp DateTime @default(now())
   eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id])
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  event     Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
+  @@index([eventId], map: "elo_history_event_id_idx")
+  @@index([playerId], map: "elo_history_player_id_idx")
+  @@index([playerId, timestamp, eventId], map: "elo_history_player_timestamp_event_idx")
+  @@index([playerId, timestamp], map: "elo_history_player_timestamp_idx")
+  @@index([timestamp])
   @@map("elo_history")
 }
 
@@ -148,10 +144,12 @@ model Vote {
   tradeId      String
   eventId      String?
   cutPlayer    Player   @relation("VoteCut", fields: [cutId], references: [id])
+  event        Event?   @relation(fields: [eventId], references: [id])
   keepPlayer   Player   @relation("VoteKeep", fields: [keepId], references: [id])
   tradePlayer  Player   @relation("VoteTrade", fields: [tradeId], references: [id])
-  event        Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
+  @@index([eventId], map: "votes_event_id_idx")
+  @@index([timestamp])
   @@map("votes")
 }
 
@@ -215,16 +213,31 @@ model EmailVerificationToken {
 }
 
 model EventRating {
-  id        String   @id @default(cuid())
-  playerId  String
-  eventId   String
-  rating    Int      @default(5000)
-  gamesPlayed Int    @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  playerId    String
+  eventId     String
+  rating      Int      @default(5000)
+  gamesPlayed Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, eventId])
+  @@index([eventId], map: "event_ratings_event_id_idx")
+  @@index([eventId, rating(sort: Desc)], map: "event_ratings_event_rating_idx")
+  @@index([playerId], map: "event_ratings_player_id_idx")
+  @@index([rating])
   @@map("event_ratings")
+}
+
+enum EventType {
+  TOURNAMENT
+  SCORED
+}
+
+enum EventStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
 }

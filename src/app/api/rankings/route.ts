@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { NextRequest } from "next/server";
 
+// This API calculates 24h trends using NET rating change (final - initial)
+// rather than summing all individual changes. This prevents inflated numbers
+// from multiple eloHistory entries created per vote.
+
 interface EloHistoryEntry {
   playerId: string;
   oldRating: number;
   newRating: number;
+  timestamp: Date;
 }
 
 interface CaptainData {
@@ -179,6 +184,7 @@ export async function GET(request: NextRequest) {
               playerId: true,
               oldRating: true,
               newRating: true,
+              timestamp: true,
             },
           }),
           // Fetch all captain data in one query
@@ -250,21 +256,24 @@ export async function GET(request: NextRequest) {
       players = eventRatings.map((eventRating, currentIndex) => {
         const playerId = eventRating.playerId;
 
-        // Calculate trend from pre-fetched data - show raw rating change over 24h
+        // Calculate trend from pre-fetched data - show net rating change over 24h
         const recentHistory = eloHistoryMap.get(playerId) || [];
         let trend = 0;
 
         if (recentHistory.length > 0) {
-          // Simple: sum up all rating changes in the past 24 hours
-          const totalRatingChange = recentHistory.reduce(
-            (total: number, entry: EloHistoryEntry) => {
-              return total + (entry.newRating - entry.oldRating);
-            },
-            0
+          // Calculate net change: (final rating - initial rating) over 24h
+          // This prevents inflated numbers from multiple eloHistory entries per vote
+          const sortedHistory = recentHistory.sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
 
-          // Round to nearest integer for clean display
-          trend = Math.round(totalRatingChange);
+          if (sortedHistory.length > 0) {
+            const initialRating = sortedHistory[0].oldRating;
+            const finalRating =
+              sortedHistory[sortedHistory.length - 1].newRating;
+            trend = Math.round(finalRating - initialRating);
+          }
         }
 
         // Get captain status from pre-fetched data
@@ -352,6 +361,7 @@ export async function GET(request: NextRequest) {
               playerId: true,
               oldRating: true,
               newRating: true,
+              timestamp: true,
             },
           }),
           // Fetch all captain data in one query
@@ -423,21 +433,24 @@ export async function GET(request: NextRequest) {
       players = playersWithAverages.map((player, currentIndex) => {
         const playerId = player.id;
 
-        // Calculate trend from pre-fetched data - show raw rating change over 24h
+        // Calculate trend from pre-fetched data - show net rating change over 24h
         const recentHistory = eloHistoryMap.get(playerId) || [];
         let trend = 0;
 
         if (recentHistory.length > 0) {
-          // Simple: sum up all rating changes in the past 24 hours
-          const totalRatingChange = recentHistory.reduce(
-            (total: number, entry: EloHistoryEntry) => {
-              return total + (entry.newRating - entry.oldRating);
-            },
-            0
+          // Calculate net change: (final rating - initial rating) over 24h
+          // This prevents inflated numbers from multiple eloHistory entries per vote
+          const sortedHistory = recentHistory.sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
 
-          // Round to nearest integer for clean display
-          trend = Math.round(totalRatingChange);
+          if (sortedHistory.length > 0) {
+            const initialRating = sortedHistory[0].oldRating;
+            const finalRating =
+              sortedHistory[sortedHistory.length - 1].newRating;
+            trend = Math.round(finalRating - initialRating);
+          }
         }
 
         // Get captain status from pre-fetched data

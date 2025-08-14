@@ -382,20 +382,46 @@ export default function AdminTeamsPage() {
                         </h3>
                         <p className="text-xs text-gray-500">
                           Captain:{" "}
-                          {team.captain
-                            ? `${team.captain.name} (Rating: ${team.captain.eloRating})`
-                            : "Not assigned"}
+                          {team.captain ? (
+                            <span className="flex items-center space-x-2">
+                              <span>{team.captain.name}</span>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium ${
+                                  team.captain.eloRating >= 6500
+                                    ? "bg-green-100 text-green-800"
+                                    : team.captain.eloRating >= 5500
+                                    ? "bg-blue-100 text-blue-800"
+                                    : team.captain.eloRating >= 4500
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                Rating: {team.captain.eloRating}
+                              </span>
+                            </span>
+                          ) : (
+                            "Not assigned"
+                          )}
                         </p>
                         {team.abbreviation && (
                           <p className="text-xs text-gray-500">
                             Abbreviation: {team.abbreviation}
                           </p>
                         )}
+                        <p className="text-xs text-gray-500">
+                          Team Rating:{" "}
+                          {getPlayersByTeam(team.id).length > 0
+                            ? Math.round(
+                                getPlayersByTeam(team.id).reduce(
+                                  (sum, p) => sum + p.eloRating,
+                                  0
+                                ) / getPlayersByTeam(team.id).length
+                              )
+                            : "N/A"}{" "}
+                          | {getPlayersByTeam(team.id).length} players
+                        </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500">
-                          {getPlayersByTeam(team.id).length} players
-                        </span>
                         <button
                           onClick={() => handleEditTeam(team)}
                           className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
@@ -422,9 +448,22 @@ export default function AdminTeamsPage() {
                             <span className="text-sm font-medium text-gray-900">
                               {player.name}
                             </span>
-                            <div className="text-xs text-gray-500">
-                              Rating: {player.eloRating} | Exp:{" "}
-                              {player.experience}y | Wins: {player.wins}
+                            <div className="text-xs text-gray-500 flex items-center space-x-3">
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium ${
+                                  player.eloRating >= 6500
+                                    ? "bg-green-100 text-green-800"
+                                    : player.eloRating >= 5500
+                                    ? "bg-blue-100 text-blue-800"
+                                    : player.eloRating >= 4500
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                Rating: {player.eloRating}
+                              </span>
+                              <span>Exp: {player.experience}y</span>
+                              <span>Wins: {player.wins}</span>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -498,9 +537,22 @@ export default function AdminTeamsPage() {
                         <span className="text-sm font-medium text-gray-900">
                           {player.name}
                         </span>
-                        <div className="text-xs text-gray-500">
-                          Rating: {player.eloRating} | Exp: {player.experience}y
-                          | Wins: {player.wins}
+                        <div className="text-xs text-gray-500 flex items-center space-x-3">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              player.eloRating >= 6500
+                                ? "bg-green-100 text-green-800"
+                                : player.eloRating >= 5500
+                                ? "bg-blue-100 text-blue-800"
+                                : player.eloRating >= 4500
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            Rating: {player.eloRating}
+                          </span>
+                          <span>Exp: {player.experience}y</span>
+                          <span>Wins: {player.wins}</span>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">

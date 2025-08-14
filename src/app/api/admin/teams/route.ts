@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
                 eloRating: true,
                 experience: true,
                 wins: true,
+                eventRatings: {
+                  select: {
+                    rating: true,
+                  },
+                },
               },
             },
           },
@@ -43,6 +48,11 @@ export async function GET(request: NextRequest) {
             eloRating: true,
             experience: true,
             wins: true,
+            eventRatings: {
+              select: {
+                rating: true,
+              },
+            },
           },
         },
       },
@@ -57,7 +67,15 @@ export async function GET(request: NextRequest) {
         ? {
             id: team.captain.id,
             name: team.captain.name,
-            eloRating: team.captain.eloRating,
+            eloRating:
+              team.captain.eventRatings.length > 0
+                ? Math.round(
+                    team.captain.eventRatings.reduce(
+                      (sum, er) => sum + er.rating,
+                      0
+                    ) / team.captain.eventRatings.length
+                  )
+                : team.captain.eloRating,
             experience: team.captain.experience,
             wins: team.captain.wins,
           }
@@ -65,7 +83,15 @@ export async function GET(request: NextRequest) {
       members: team.members.map((member) => ({
         id: member.player.id,
         name: member.player.name,
-        eloRating: member.player.eloRating,
+        eloRating:
+          member.player.eventRatings.length > 0
+            ? Math.round(
+                member.player.eventRatings.reduce(
+                  (sum, er) => sum + er.rating,
+                  0
+                ) / member.player.eventRatings.length
+              )
+            : member.player.eloRating,
         experience: member.player.experience,
         wins: member.player.wins,
       })),

@@ -43,3 +43,9 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Testing and debugging scripts
+/test-scripts
+
+# One-time use scripts (setup, fixes, migrations)
+/one-time-scripts

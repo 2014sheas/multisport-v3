@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// This API updates event-specific ratings and creates Elo history
+// The teams and players APIs calculate ratings on-the-fly from event ratings
+// to ensure consistency between rankings page and teams page
+
 // Elo calculation constants
 const K_FACTOR = 800; // Much higher K-factor for very dynamic ratings on 0-9999 scale
 const BASE_RATING = 5000; // Middle of the 0-9999 scale
@@ -153,7 +157,7 @@ export async function POST(request: NextRequest) {
           },
         },
         data: {
-          rating: cutEventRating.rating + cutKeepChange + cutTradeChange,
+          rating: cutEventRating.rating + cutTradeChange + cutKeepChange,
           gamesPlayed: cutEventRating.gamesPlayed + 2,
         },
       }),
@@ -190,11 +194,16 @@ export async function POST(request: NextRequest) {
         data: {
           playerId: cutId,
           oldRating: cutEventRating.rating,
-          newRating: cutEventRating.rating + cutKeepChange + cutTradeChange,
+          newRating: cutEventRating.rating + cutTradeChange + cutKeepChange,
           eventId: eventId || null,
         },
       }),
     ]);
+
+    // Note: We don't update the main player.eloRating field here because:
+    // 1. The teams and players APIs now calculate ratings on-the-fly from event ratings
+    // 2. This ensures consistency between rankings page and teams page
+    // 3. No risk of the main rating field getting out of sync
 
     return NextResponse.json({
       success: true,
@@ -211,7 +220,7 @@ export async function POST(request: NextRequest) {
       cut: {
         id: updatedCut.id,
         eloRating: updatedCut.rating,
-        change: cutKeepChange + cutTradeChange,
+        change: cutTradeChange + cutKeepChange,
       },
     });
   } catch (error) {

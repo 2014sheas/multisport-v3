@@ -89,6 +89,12 @@ export async function GET(request: NextRequest) {
           },
           take: 1,
         },
+        // Include event ratings to calculate accurate average ratings
+        eventRatings: {
+          select: {
+            rating: true,
+          },
+        },
       },
       orderBy: {
         [sortBy]: sortOrder,
@@ -127,11 +133,17 @@ export async function GET(request: NextRequest) {
       )})`
     );
 
-    // Format players to include teamId
+    // Format players to include teamId and calculate accurate average ratings
     const formattedPlayers = players.map((player) => ({
       id: player.id,
       name: player.name,
-      eloRating: player.eloRating,
+      eloRating:
+        player.eventRatings.length > 0
+          ? Math.round(
+              player.eventRatings.reduce((sum, er) => sum + er.rating, 0) /
+                player.eventRatings.length
+            )
+          : player.eloRating,
       experience: player.experience || 0,
       wins: player.wins || 0,
       isActive: player.isActive,
