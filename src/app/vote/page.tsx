@@ -9,6 +9,7 @@ import {
   Users,
   Calendar,
   TrendingUp,
+  ArrowLeft,
 } from "lucide-react";
 
 interface Player {
@@ -297,6 +298,45 @@ export default function VotePage() {
     }
   };
 
+  // Function to refresh players based on current mode
+  const refreshPlayers = async () => {
+    if (events.length === 0) return;
+
+    try {
+      setLoading(true);
+
+      if (isRandomMode) {
+        // In random mode, randomize the event
+        const randomIndex = Math.floor(Math.random() * events.length);
+        const randomEvent = events[randomIndex];
+        setSelectedEventId(randomEvent.id);
+      }
+      // If not in random mode, keep the same event but fetch new players
+
+      // Fetch new random players for the current event
+      const url = `/api/players/random?eventId=${selectedEventId}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        setDisplayPlayers(data.players);
+        setVoteSelections({
+          keep: null,
+          trade: null,
+          cut: null,
+        });
+        setVoteMessage("");
+      } else {
+        setVoteMessage("Failed to load new players");
+      }
+    } catch (error) {
+      console.error("Error refreshing players:", error);
+      setVoteMessage("Failed to refresh players");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-4 sm:py-8">
@@ -308,6 +348,22 @@ export default function VotePage() {
           <p className="text-sm sm:text-lg text-gray-600 mb-4 sm:mb-6">
             Help rank players by voting on who to keep, trade, or cut
           </p>
+
+          {/* Back to Rankings Link */}
+          <div className="mb-4 sm:mb-6">
+            <a
+              href="/rankings"
+              className="inline-flex items-center px-3 sm:px-4 py-2 text-sm sm:text-base text-blue-600 hover:text-blue-700 font-medium transition-colors hover:bg-blue-50 rounded-lg"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              Back to Rankings
+              {!isRandomMode && selectedEvent && (
+                <span className="ml-2 text-xs text-gray-500">
+                  ({selectedEvent.symbol} {selectedEvent.name})
+                </span>
+              )}
+            </a>
+          </div>
 
           {/* Event Selection */}
           <div className="flex items-center justify-center space-x-2 sm:space-x-4 mb-4 sm:mb-6">
@@ -333,7 +389,7 @@ export default function VotePage() {
               <option value="random">🎲 Random Event</option>
               {events.map((event) => (
                 <option key={event.id} value={event.id}>
-                  {event.name} ({event.abbreviation})
+                  {event.symbol} {event.name}
                 </option>
               ))}
             </select>
@@ -352,17 +408,6 @@ export default function VotePage() {
               <Users className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>{totalVotes} votes submitted</span>
             </div>
-            {selectedEvent && (
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>
-                  {selectedEvent.name}
-                  {selectedEventId && events.length > 0 && (
-                    <span className="ml-1 text-gray-400">(🎲 Random)</span>
-                  )}
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -396,10 +441,7 @@ export default function VotePage() {
                         <h2 className="text-sm sm:text-lg font-bold text-gray-900">
                           {selectedEvent.name}
                         </h2>
-                        <p className="text-xs sm:text-sm text-gray-600">
-                          {selectedEvent.abbreviation} •{" "}
-                          {selectedEvent.eventType.toLowerCase()}
-                        </p>
+                        <p className="text-xs sm:text-sm text-gray-600"></p>
                       </div>
                     </div>
                     {isRandomMode && (
@@ -543,6 +585,24 @@ export default function VotePage() {
                       </div>
                     ) : (
                       "Submit Vote"
+                    )}
+                  </button>
+                </div>
+
+                {/* Skip Link */}
+                <div className="text-center mt-3 sm:mt-4">
+                  <button
+                    onClick={refreshPlayers}
+                    disabled={loading}
+                    className="text-blue-600 hover:text-blue-700 text-sm sm:text-base font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center">
+                        <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 animate-spin mr-1.5 sm:mr-2" />
+                        Loading new players...
+                      </div>
+                    ) : (
+                      "I don&apos;t know all of these players (skip)"
                     )}
                   </button>
                 </div>
