@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         eventType: true,
         status: true,
         startTime: true,
+        duration: true,
         location: true,
         points: true,
         finalStandings: true,

@@ -60,28 +60,131 @@ async function main() {
       console.log("⏭️  Admin user already exists");
     }
 
-    // Create sample event
-    const existingEvent = await prisma.event.findFirst({
-      where: { name: "Sample Event" },
-    });
+    // Create sample events for August tournament
+    const augustEvents = [
+      {
+        name: "Opening Ceremony",
+        abbreviation: "OC",
+        symbol: "🎉",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-22T09:00:00Z"),
+        duration: 60,
+        location: "Main Arena",
+        points: [0],
+        finalStandings: undefined,
+      },
+      {
+        name: "Team Registration",
+        abbreviation: "TR",
+        symbol: "📝",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-22T10:00:00Z"),
+        duration: 120,
+        location: "Registration Desk",
+        points: [0],
+        finalStandings: undefined,
+      },
+      {
+        name: "Round 1 - Group A",
+        abbreviation: "R1A",
+        symbol: "⚽",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-22T14:00:00Z"),
+        duration: 90,
+        location: "Field 1",
+        points: [100, 75, 50, 25],
+        finalStandings: undefined,
+      },
+      {
+        name: "Round 1 - Group B",
+        abbreviation: "R1B",
+        symbol: "⚽",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-22T16:00:00Z"),
+        duration: 90,
+        location: "Field 2",
+        points: [100, 75, 50, 25],
+        finalStandings: undefined,
+      },
+      {
+        name: "Round 2 - Group A",
+        abbreviation: "R2A",
+        symbol: "⚽",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-23T10:00:00Z"),
+        duration: 90,
+        location: "Field 1",
+        points: [100, 75, 50, 25],
+        finalStandings: undefined,
+      },
+      {
+        name: "Round 2 - Group B",
+        abbreviation: "R2B",
+        symbol: "⚽",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-23T14:00:00Z"),
+        duration: 90,
+        location: "Field 2",
+        points: [100, 75, 50, 25],
+        finalStandings: undefined,
+      },
+      {
+        name: "Semi-Finals",
+        abbreviation: "SF",
+        symbol: "🏆",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-24T10:00:00Z"),
+        duration: 120,
+        location: "Main Arena",
+        points: [100, 75, 50, 25],
+        finalStandings: undefined,
+      },
+      {
+        name: "Championship Game",
+        abbreviation: "CG",
+        symbol: "🥇",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-24T15:00:00Z"),
+        duration: 120,
+        location: "Main Arena",
+        points: [100, 75, 50, 25],
+        finalStandings: undefined,
+      },
+      {
+        name: "Awards Ceremony",
+        abbreviation: "AC",
+        symbol: "🏅",
+        eventType: "TOURNAMENT" as const,
+        status: "UPCOMING" as const,
+        startTime: new Date("2024-08-24T18:00:00Z"),
+        duration: 60,
+        location: "Main Arena",
+        points: [0],
+        finalStandings: undefined,
+      },
+    ];
 
-    if (!existingEvent) {
-      await prisma.event.create({
-        data: {
-          name: "Sample Event",
-          abbreviation: "SE",
-          symbol: "🏆",
-          eventType: "TOURNAMENT",
-          status: "UPCOMING",
-          startTime: new Date("2024-12-01T10:00:00Z"),
-          location: "Main Arena",
-          points: [100, 75, 50, 25],
-          finalStandings: undefined,
-        },
+    for (const eventData of augustEvents) {
+      const existingEvent = await prisma.event.findFirst({
+        where: { name: eventData.name },
       });
-      console.log("✅ Created sample event");
-    } else {
-      console.log("⏭️  Sample event already exists");
+
+      if (!existingEvent) {
+        await prisma.event.create({
+          data: eventData,
+        });
+        console.log(`✅ Created event: ${eventData.name}`);
+      } else {
+        console.log(`⏭️  Event already exists: ${eventData.name}`);
+      }
     }
   } else {
     console.log("🚀 Production mode detected - skipping sample data creation");

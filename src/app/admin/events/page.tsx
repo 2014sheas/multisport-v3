@@ -12,6 +12,7 @@ interface Event {
   eventType: "TOURNAMENT" | "SCORED";
   status: "UPCOMING" | "IN_PROGRESS" | "COMPLETED";
   startTime: string;
+  duration: number | null;
   location: string;
   points: number[];
   finalStandings: string[] | null;
@@ -43,6 +44,7 @@ export default function AdminEventsPage() {
     eventType: "TOURNAMENT" as "TOURNAMENT" | "SCORED",
     status: "UPCOMING" as "UPCOMING" | "IN_PROGRESS" | "COMPLETED",
     startTime: "",
+    duration: 60,
     location: "",
     points: [10, 7, 4, 2] as number[],
     finalStandings: [] as string[],
@@ -54,6 +56,7 @@ export default function AdminEventsPage() {
     eventType: "TOURNAMENT" as "TOURNAMENT" | "SCORED",
     status: "UPCOMING" as "UPCOMING" | "IN_PROGRESS" | "COMPLETED",
     startTime: "",
+    duration: 60,
     location: "",
     points: [10, 7, 4, 2] as number[],
     finalStandings: [] as string[],
@@ -110,6 +113,7 @@ export default function AdminEventsPage() {
           eventType: "TOURNAMENT",
           status: "UPCOMING",
           startTime: "",
+          duration: 60,
           location: "",
           points: [10, 7, 4, 2],
           finalStandings: [],
@@ -143,6 +147,7 @@ export default function AdminEventsPage() {
           eventType: "TOURNAMENT",
           status: "UPCOMING",
           startTime: "",
+          duration: 60,
           location: "",
           points: [10, 7, 4, 2],
           finalStandings: [],
@@ -163,6 +168,7 @@ export default function AdminEventsPage() {
       eventType: event.eventType,
       status: event.status,
       startTime: new Date(event.startTime).toISOString().slice(0, 16),
+      duration: event.duration || 60,
       location: event.location,
       points: event.points,
       finalStandings: event.finalStandings || [],
@@ -328,6 +334,11 @@ export default function AdminEventsPage() {
                           hour12: true,
                         })}
                       </p>
+                      {event.duration && (
+                        <p className="text-sm text-gray-600">
+                          Duration: {event.duration} minutes
+                        </p>
+                      )}
                       {event.status === "UPCOMING" && (
                         <p className="text-sm text-blue-600 font-medium">
                           {getTimeRemaining(event.startTime)} remaining
@@ -586,6 +597,28 @@ export default function AdminEventsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
+                        Duration (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min="5"
+                        step="5"
+                        required
+                        value={formData.duration}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            duration: parseInt(e.target.value) || 60,
+                          })
+                        }
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Duration in minutes (minimum 5, increments of 5)
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
                         Location
                       </label>
                       <input
@@ -785,6 +818,28 @@ export default function AdminEventsPage() {
                         }
                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Duration (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min="5"
+                        step="5"
+                        required
+                        value={editFormData.duration}
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            duration: parseInt(e.target.value) || 60,
+                          })
+                        }
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Duration in minutes (minimum 5, increments of 5)
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">

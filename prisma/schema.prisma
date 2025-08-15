@@ -96,6 +96,7 @@ model Event {
   startTime      DateTime?
   status         EventStatus   @default(UPCOMING)
   symbol         String
+  duration       Int?
   eloHistory     EloHistory[]
   eventRatings   EventRating[]
   votes          Vote[]
