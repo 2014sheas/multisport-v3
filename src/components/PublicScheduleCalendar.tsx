@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Event } from "@prisma/client";
+import Link from "next/link";
 
 interface ScheduledEvent extends Omit<Event, "startTime" | "duration"> {
   startTime?: Date | null;
@@ -47,7 +48,7 @@ export default function PublicScheduleCalendar({
           return {
             ...event,
             startTime: event.startTime ? new Date(event.startTime) : null,
-            duration: event.duration || 60, // Use existing duration or default to 1 hour
+            duration: 60, // Default to 1 hour since duration field may not exist
             dayIndex: event.startTime
               ? getDayIndex(new Date(event.startTime))
               : undefined,
@@ -127,7 +128,7 @@ export default function PublicScheduleCalendar({
     return colors[colorIndex];
   };
 
-  const getEventPositioning = (event: any, dayIndex: number) => {
+  const getEventPositioning = (event: ScheduledEvent, dayIndex: number) => {
     const eventsOnSameDay = scheduledEvents.filter(
       (e) => e.dayIndex === dayIndex
     );
@@ -486,9 +487,10 @@ export default function PublicScheduleCalendar({
                         }
 
                         return (
-                          <div
+                          <Link
                             key={event.id}
-                            className={`absolute rounded text-white p-2 ${getEventColor(
+                            href={`/events/${event.abbreviation}`}
+                            className={`absolute rounded text-white p-2 cursor-pointer hover:opacity-80 transition-opacity ${getEventColor(
                               event.location
                             )}`}
                             style={{
@@ -523,7 +525,7 @@ export default function PublicScheduleCalendar({
                                 </>
                               )}
                             </div>
-                          </div>
+                          </Link>
                         );
                       })}
                     </div>

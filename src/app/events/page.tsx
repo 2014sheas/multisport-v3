@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Calendar, Clock, MapPin } from "lucide-react";
+import Link from "next/link";
 
 interface Event {
   id: string;
@@ -150,9 +151,10 @@ export default function EventsPage() {
       {/* Events Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {events.map((event) => (
-          <div
+          <Link
             key={event.id}
-            className={`bg-white shadow-lg rounded-lg overflow-hidden border transition-all duration-300 hover:shadow-xl ${
+            href={`/events/${event.abbreviation}`}
+            className={`bg-white shadow-lg rounded-lg overflow-hidden border transition-all duration-300 hover:shadow-xl cursor-pointer ${
               event.status === "UPCOMING"
                 ? "border-yellow-200 hover:border-yellow-300"
                 : event.status === "IN_PROGRESS"
@@ -300,7 +302,7 @@ export default function EventsPage() {
                   </div>
                 )}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
