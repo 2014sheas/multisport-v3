@@ -15,8 +15,8 @@ interface EventScheduleCalendarProps {
   onScheduleSubmit: (events: Event[]) => void;
 }
 
-// Create time slots for 5-minute increments (288 slots per day)
-const TIME_SLOTS = Array.from({ length: 288 }, (_, i) => i * 5);
+// Create time slots for 5-minute increments from 9 AM to 10 PM (156 slots per day)
+const TIME_SLOTS = Array.from({ length: 156 }, (_, i) => i * 5 + 540); // 540 minutes = 9 AM
 const DAYS = [
   { date: "2025-08-22", label: "Friday, Aug 22" },
   { date: "2025-08-23", label: "Saturday, Aug 23" },
@@ -99,9 +99,11 @@ export default function EventScheduleCalendar({
     const headerHeight = 48; // Day header height
     const padding = 24; // Calendar padding
     const adjustedY = relativeY - headerHeight - padding;
-    // Fixed height calculation: 1440px / 288 slots = 5px per slot
+    // Fixed height calculation: 780px / 156 slots = 5px per slot
     const timeSlotHeight = 5; // 5px per 5-minute slot
-    return Math.max(0, Math.floor(adjustedY / timeSlotHeight));
+    const timeSlot = Math.max(0, Math.floor(adjustedY / timeSlotHeight));
+    // Convert to actual time (starting from 9 AM = 540 minutes)
+    return timeSlot + 108; // 108 = 540 / 5 (9 AM in 5-minute slots)
   };
 
   const getYFromTime = (time: number): number => {
@@ -113,7 +115,25 @@ export default function EventScheduleCalendar({
 
   const getYFromTimeSlot = (timeSlot: number): number => {
     // Convert 5-minute time slot directly to pixel position
-    return timeSlot * 5; // 5px per 5-minute slot
+    // Since we start at 9 AM (540 minutes), we need to adjust the positioning
+    // Now using 60px per hour (12 slots per hour)
+    return (timeSlot - 108) * 5; // 108 = 540 / 5, 5px per 5-minute slot
+  };
+
+  const formatTime = (date: Date): string => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+
+    // Convert to 12-hour format without leading zeros
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const ampm = hours >= 12 ? "PM" : "AM";
+
+    // Add minutes only if they're not 0
+    if (minutes === 0) {
+      return `${displayHours} ${ampm}`;
+    } else {
+      return `${displayHours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+    }
   };
 
   const getEventColor = (location: string | null): string => {
@@ -187,7 +207,7 @@ export default function EventScheduleCalendar({
     const dayIndex = Math.floor(x / dayWidth);
     const timeSlot = getTimeFromY(e.clientY);
 
-    if (dayIndex >= 0 && dayIndex < 3 && timeSlot >= 0 && timeSlot < 288) {
+    if (dayIndex >= 0 && dayIndex < 3 && timeSlot >= 108 && timeSlot < 264) {
       e.dataTransfer.dropEffect = "move";
       // Use requestAnimationFrame for smoother updates
       requestAnimationFrame(() => {
@@ -213,14 +233,15 @@ export default function EventScheduleCalendar({
       const dayIndex = Math.floor(x / dayWidth);
       const timeSlot = getTimeFromY(e.clientY);
 
-      if (dayIndex >= 0 && dayIndex < 3 && timeSlot >= 0 && timeSlot < 288) {
-        // Convert 5-minute slot to hours and minutes
-        const totalMinutes = timeSlot * 5;
-        const hours = Math.floor(totalMinutes / 60);
+      if (dayIndex >= 0 && dayIndex < 3 && timeSlot >= 108 && timeSlot < 264) {
+        // Convert 5-minute slot to hours and minutes (starting from 9 AM)
+        const adjustedTimeSlot = timeSlot - 108; // Remove 9 AM offset
+        const totalMinutes = adjustedTimeSlot * 5;
+        const hours = Math.floor(totalMinutes / 60) + 9; // Add 9 AM offset
         const minutes = totalMinutes % 60;
 
         const newDate = new Date(
-          `2024-08-${22 + dayIndex}T${hours
+          `2025-08-${22 + dayIndex}T${hours
             .toString()
             .padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:00`
         );
@@ -372,11 +393,15 @@ export default function EventScheduleCalendar({
             </p>
           </div>
           <button
-            onClick={() => onScheduleSubmit(scheduledEvents.map(event => ({
-              ...event,
-              startTime: event.startTime || null,
-              duration: event.duration || null
-            })) as Event[])}
+            onClick={() =>
+              onScheduleSubmit(
+                scheduledEvents.map((event) => ({
+                  ...event,
+                  startTime: event.startTime || null,
+                  duration: event.duration || null,
+                })) as Event[]
+              )
+            }
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
           >
             Submit Schedule
@@ -424,7 +449,7 @@ export default function EventScheduleCalendar({
           className={`relative border border-gray-200 rounded-lg overflow-hidden transition-all duration-200 ${
             isDragging ? "border-blue-400 bg-blue-50" : ""
           }`}
-          style={{ height: "1440px" }} // Fixed height: 288 slots * 5px per slot
+          style={{ height: "840px" }} // Height: 14 hours * 60px per hour
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onMouseMove={(e) => {
@@ -439,10 +464,12 @@ export default function EventScheduleCalendar({
               if (
                 dayIndex >= 0 &&
                 dayIndex < 3 &&
-                timeSlot >= 0 &&
-                timeSlot < 288
+                timeSlot >= 108 &&
+                timeSlot < 264
               ) {
-                const totalMinutes = timeSlot * 5;
+                // Convert from 5-minute slots to actual time (starting from 9 AM)
+                const adjustedTimeSlot = timeSlot - 108; // Remove 9 AM offset
+                const totalMinutes = adjustedTimeSlot * 5;
                 const hours = Math.floor(totalMinutes / 60);
                 const minutes = totalMinutes % 60;
                 const timeString = `${
@@ -470,26 +497,23 @@ export default function EventScheduleCalendar({
             >
               {/* Empty space to match day header height */}
             </div>
-            {TIME_SLOTS.filter((_, index) => index % 12 === 0).map(
-              (minutes) => {
-                const hour = Math.floor(minutes / 60);
-                return (
-                  <div
-                    key={minutes}
-                    className="border-b border-gray-200 text-xs text-gray-500 flex items-center justify-center"
-                    style={{ height: "60px" }}
-                  >
-                    {hour === 0
-                      ? "12 AM"
-                      : hour === 12
-                      ? "12 PM"
-                      : hour > 12
-                      ? `${hour - 12} PM`
-                      : `${hour} AM`}
-                  </div>
-                );
-              }
-            )}
+            {Array.from({ length: 14 }, (_, i) => {
+              const hour = 9 + i; // Start at 9 AM, go to 10 PM
+              const minutes = hour * 60;
+              return (
+                <div
+                  key={minutes}
+                  className="border-b border-gray-200 text-xs text-gray-500 flex items-center justify-center"
+                  style={{ height: "60px" }}
+                >
+                  {hour === 12
+                    ? "12 PM"
+                    : hour > 12
+                    ? `${hour - 12} PM`
+                    : `${hour} AM`}
+                </div>
+              );
+            })}
           </div>
 
           {/* Day columns */}
@@ -506,15 +530,17 @@ export default function EventScheduleCalendar({
 
                 {/* Time slots */}
                 <div className="relative">
-                  {TIME_SLOTS.filter((_, index) => index % 12 === 0).map(
-                    (minutes) => (
+                  {Array.from({ length: 14 }, (_, i) => {
+                    const hour = 9 + i; // Start at 9 AM, go to 10 PM
+                    const minutes = hour * 60;
+                    return (
                       <div
                         key={minutes}
                         className="border-b border-gray-200"
                         style={{ height: "60px" }}
                       />
-                    )
-                  )}
+                    );
+                  })}
 
                   {/* 5-minute grid lines for better precision */}
                   {TIME_SLOTS.filter((_, index) => index % 12 !== 0).map(
@@ -523,11 +549,18 @@ export default function EventScheduleCalendar({
                         key={minutes}
                         className="border-b border-gray-100 hover:border-gray-300 transition-colors duration-150"
                         style={{ height: "5px" }}
-                        title={`${Math.floor(minutes / 60)}:${(minutes % 60)
-                          .toString()
-                          .padStart(2, "0")} ${
-                          Math.floor(minutes / 60) >= 12 ? "PM" : "AM"
-                        }`}
+                        title={(() => {
+                          const hour = Math.floor(minutes / 60);
+                          const minute = minutes % 60;
+                          const displayHour =
+                            hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                          const ampm = hour >= 12 ? "PM" : "AM";
+                          return minute === 0
+                            ? `${displayHour} ${ampm}`
+                            : `${displayHour}:${minute
+                                .toString()
+                                .padStart(2, "0")} ${ampm}`;
+                        })()}
                       />
                     )
                   )}
@@ -573,8 +606,10 @@ export default function EventScheduleCalendar({
                       const startMinute = event.startTime?.getMinutes() || 0;
                       // Convert to 5-minute increments for positioning
                       const totalMinutes = startHour * 60 + startMinute;
-                      const fiveMinuteSlots = totalMinutes / 5;
-                      const top = getYFromTimeSlot(fiveMinuteSlots); // Use consistent function
+                      // Since we start at 9 AM, we need to adjust the time slot calculation
+                      const adjustedMinutes = totalMinutes - 540; // 540 = 9 AM
+                      const fiveMinuteSlots = adjustedMinutes / 5;
+                      const top = getYFromTimeSlot(fiveMinuteSlots + 108); // Add back the offset for positioning
                       const height = Math.max(25, event.duration || 60); // Minimum 5 minutes
                       const positioning = getEventPositioning(event, dayIndex);
 
@@ -604,18 +639,19 @@ export default function EventScheduleCalendar({
                             </div>
                           )}
                           <div className="text-xs opacity-90">
-                            {event.startTime?.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}{" "}
-                            -
-                            {new Date(
-                              (event.startTime?.getTime() || 0) +
-                                (event.duration || 60) * 60000
-                            ).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {event.startTime && formatTime(event.startTime)}
+                            {event.startTime && event.duration && (
+                              <>
+                                {" "}
+                                –{" "}
+                                {formatTime(
+                                  new Date(
+                                    event.startTime.getTime() +
+                                      event.duration * 60000
+                                  )
+                                )}
+                              </>
+                            )}
                           </div>
 
                           {/* Overlap indicator */}
@@ -681,6 +717,205 @@ export default function EventScheduleCalendar({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Mobile Calendar View */}
+      <div className="lg:hidden p-4">
+        {DAYS.map((day, dayIndex) => {
+          const dayEvents = scheduledEventsList
+            .filter((event) => event.dayIndex === dayIndex)
+            .sort(
+              (a, b) =>
+                (a.startTime?.getTime() || 0) - (b.startTime?.getTime() || 0)
+            );
+
+          // Find the time range for this day
+          let dayStart = 9 * 60; // 9 AM in minutes
+          let dayEnd = 22 * 60; // 10 PM in minutes
+
+          if (dayEvents.length > 0) {
+            const firstEventTime = dayEvents[0].startTime;
+            const lastEventTime = dayEvents[dayEvents.length - 1];
+            const lastEventEnd =
+              lastEventTime.startTime && lastEventTime.duration
+                ? new Date(
+                    lastEventTime.startTime.getTime() +
+                      lastEventTime.duration * 60000
+                  )
+                : lastEventTime.startTime;
+
+            if (firstEventTime) {
+              const firstMinutes =
+                firstEventTime.getHours() * 60 + firstEventTime.getMinutes();
+              dayStart = Math.max(9 * 60, firstMinutes - 60); // Start 1 hour before first event or 9 AM
+            }
+
+            if (lastEventEnd) {
+              const lastMinutes =
+                lastEventEnd.getHours() * 60 + lastEventEnd.getMinutes();
+              dayEnd = Math.min(22 * 60, lastMinutes + 60); // End 1 hour after last event or 10 PM
+            }
+          }
+
+          const totalMinutes = dayEnd - dayStart;
+          const timeSlots = Math.ceil(totalMinutes / 30); // 30-minute slots for mobile
+
+          return (
+            <div key={day.date} className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+                {day.label}
+              </h3>
+
+              {dayEvents.length === 0 ? (
+                <p className="text-gray-500 text-sm italic">
+                  No events scheduled
+                </p>
+              ) : (
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {/* Time slots */}
+                  <div
+                    className="relative"
+                    style={{ height: `${timeSlots * 40}px` }}
+                  >
+                    {/* Time labels on the left */}
+                    <div className="absolute left-0 top-0 w-16 bg-gray-50 border-r border-gray-200 h-full">
+                      {Array.from({ length: timeSlots + 1 }, (_, i) => {
+                        const time = dayStart + i * 30;
+                        const hour = Math.floor(time / 60);
+                        const minute = time % 60;
+                        const displayHour =
+                          hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                        const ampm = hour >= 12 ? "PM" : "AM";
+                        const timeString =
+                          minute === 0
+                            ? `${displayHour} ${ampm}`
+                            : `${displayHour}:${minute
+                                .toString()
+                                .padStart(2, "0")} ${ampm}`;
+
+                        return (
+                          <div
+                            key={i}
+                            className="text-xs text-gray-500 flex items-center justify-center border-b border-gray-100"
+                            style={{ height: "40px" }}
+                          >
+                            {timeString}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Events */}
+                    <div className="ml-16 relative h-full">
+                      {dayEvents.map((event) => {
+                        if (!event.startTime) return null;
+
+                        const eventStartMinutes =
+                          event.startTime.getHours() * 60 +
+                          event.startTime.getMinutes();
+                        const eventEndMinutes =
+                          eventStartMinutes + (event.duration || 60);
+
+                        const top = ((eventStartMinutes - dayStart) / 30) * 40;
+                        const height =
+                          ((eventEndMinutes - eventStartMinutes) / 30) * 40;
+
+                        // Check for overlapping events
+                        const overlappingEvents = dayEvents.filter(
+                          (otherEvent) => {
+                            if (otherEvent.id === event.id) return false;
+                            if (!otherEvent.startTime) return false;
+
+                            const otherStartMinutes =
+                              otherEvent.startTime.getHours() * 60 +
+                              otherEvent.startTime.getMinutes();
+                            const otherEndMinutes =
+                              otherStartMinutes + (otherEvent.duration || 60);
+
+                            return (
+                              eventStartMinutes < otherEndMinutes &&
+                              eventEndMinutes > otherStartMinutes
+                            );
+                          }
+                        );
+
+                        // Calculate positioning for overlapping events
+                        let left = "1px";
+                        let right = "1px";
+                        let width = "auto";
+
+                        if (overlappingEvents.length > 0) {
+                          // Sort all overlapping events by start time
+                          const allOverlapping = [
+                            event,
+                            ...overlappingEvents,
+                          ].sort(
+                            (a, b) =>
+                              (a.startTime?.getTime() || 0) -
+                              (b.startTime?.getTime() || 0)
+                          );
+                          const eventIndex = allOverlapping.findIndex(
+                            (e) => e.id === event.id
+                          );
+
+                          // Calculate positioning for up to 3 events side by side
+                          const maxEvents = Math.min(3, allOverlapping.length);
+                          const eventWidth = `calc((100% - 2px) / ${maxEvents})`;
+                          left = `calc(${eventIndex} * (100% / ${maxEvents}) + 1px)`;
+                          right = `calc(100% - ${
+                            eventIndex + 1
+                          } * (100% / ${maxEvents}) + 1px)`;
+                          width = eventWidth;
+                        }
+
+                        return (
+                          <div
+                            key={event.id}
+                            className={`absolute rounded text-white p-2 ${getEventColor(
+                              event.location
+                            )}`}
+                            style={{
+                              top: `${top}px`,
+                              height: `${Math.max(height, 30)}px`,
+                              minHeight: "30px",
+                              left,
+                              right,
+                              width,
+                            }}
+                          >
+                            <div className="font-medium text-sm truncate">
+                              {event.name}
+                            </div>
+                            {event.location && (
+                              <div className="text-xs opacity-90 truncate">
+                                📍 {event.location}
+                              </div>
+                            )}
+                            <div className="text-xs opacity-90">
+                              {formatTime(event.startTime)}
+                              {event.duration && (
+                                <>
+                                  {" "}
+                                  –{" "}
+                                  {formatTime(
+                                    new Date(
+                                      event.startTime.getTime() +
+                                        event.duration * 60000
+                                    )
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
