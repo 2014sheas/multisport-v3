@@ -11,6 +11,15 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface Player {
   id: string;
@@ -39,6 +48,30 @@ interface PlayerRanking {
   gamesPlayed: number;
 }
 
+interface RatingHistory {
+  timestamp: string;
+  rating: number;
+}
+
+interface EventHistory {
+  eventId: string;
+  eventName: string;
+  eventAbbreviation: string;
+  eventSymbol: string;
+  history: RatingHistory[];
+}
+
+interface HistoryData {
+  overallHistory: RatingHistory[];
+  eventHistories: EventHistory[];
+  events: Array<{
+    id: string;
+    name: string;
+    abbreviation: string;
+    symbol: string;
+  }>;
+}
+
 export default function PlayerPage({
   params,
 }: {
@@ -46,6 +79,8 @@ export default function PlayerPage({
 }) {
   const [player, setPlayer] = useState<Player | null>(null);
   const [rankings, setRankings] = useState<PlayerRanking[]>([]);
+  const [historyData, setHistoryData] = useState<HistoryData | null>(null);
+  const [selectedHistory, setSelectedHistory] = useState<string>("overall");
   const [loading, setLoading] = useState(true);
   const [playerName, setPlayerName] = useState<string>("");
 
@@ -61,6 +96,7 @@ export default function PlayerPage({
     if (playerName) {
       fetchPlayerData();
       fetchPlayerRankings();
+      fetchPlayerHistory();
     }
   }, [playerName]);
 
@@ -92,6 +128,20 @@ export default function PlayerPage({
       }
     } catch (error) {
       console.error("Error fetching player rankings:", error);
+    }
+  };
+
+  const fetchPlayerHistory = async () => {
+    try {
+      const response = await fetch(
+        `/api/players/by-name/${encodeURIComponent(playerName)}/history`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setHistoryData(data);
+      }
+    } catch (error) {
+      console.error("Error fetching player history:", error);
     }
   };
 
@@ -307,6 +357,107 @@ export default function PlayerPage({
           )}
         </div>
       </div>
+
+      {/* Rating History Chart */}
+      {historyData && (
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6 sm:mb-8">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              Rating History
+            </h2>
+
+            {/* Debug Info */}
+            <div className="mt-2 text-xs text-gray-500">
+              Overall History: {historyData.overallHistory.length} votes
+            </div>
+
+            {/* History Type Selector */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedHistory("overall")}
+                className={`px-3 py-1 text-sm font-medium rounded-full transition-colors ${
+                  selectedHistory === "overall"
+                    ? "bg-blue-100 text-blue-800 border border-blue-200"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Overall Rating
+              </button>
+              {historyData.events.map((event) => (
+                <button
+                  key={event.id}
+                  onClick={() => setSelectedHistory(event.id)}
+                  className={`px-3 py-1 text-sm font-medium rounded-full transition-colors ${
+                    selectedHistory === event.id
+                      ? "bg-blue-100 text-blue-800 border border-blue-200"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {event.symbol} {event.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Chart Container */}
+          {historyData.overallHistory.length > 0 ||
+          historyData.eventHistories.some((eh) => eh.history.length > 0) ? (
+            <div className="p-4 sm:p-6">
+              <div className="h-48 sm:h-64 md:h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={
+                      selectedHistory === "overall"
+                        ? historyData.overallHistory
+                        : historyData.eventHistories.find(
+                            (eh) => eh.eventId === selectedHistory
+                          )?.history || []
+                    }
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="timestamp"
+                      tickFormatter={(value) =>
+                        new Date(value).toLocaleDateString()
+                      }
+                      fontSize={12}
+                    />
+                    <YAxis
+                      domain={["dataMin - 100", "dataMax + 100"]}
+                      fontSize={12}
+                    />
+                    <Tooltip
+                      labelFormatter={(value) =>
+                        new Date(value).toLocaleDateString()
+                      }
+                      formatter={(value: number) => [value, "Rating"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="rating"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      dot={{ fill: "#3B82F6", strokeWidth: 2, r: 4 }}
+                      activeDot={{
+                        r: 6,
+                        stroke: "#3B82F6",
+                        strokeWidth: 2,
+                        fill: "#fff",
+                      }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : (
+            <div className="p-6 text-center text-gray-500">
+              <p>No rating history data available</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Empty State */}
       {rankings.length === 0 && (
