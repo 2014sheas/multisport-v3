@@ -148,9 +148,22 @@ export async function GET(
       );
     }
 
+    // Calculate vote counts
+    const overallVoteCount = eventHistories.reduce(
+      (total, eventHistory) => total + eventHistory.history.length,
+      0
+    ); // Sum of all votes across all events
+
+    // Add vote counts to event histories
+    const eventHistoriesWithVoteCounts = eventHistories.map((eventHistory) => ({
+      ...eventHistory,
+      voteCount: eventHistory.history.length, // Votes within this specific event
+    }));
+
     return NextResponse.json({
       overallHistory: overallHistoryData,
-      eventHistories,
+      eventHistories: eventHistoriesWithVoteCounts,
+      overallVoteCount,
       events: events.map((event) => ({
         id: event.id,
         name: event.name,

@@ -59,11 +59,13 @@ interface EventHistory {
   eventAbbreviation: string;
   eventSymbol: string;
   history: RatingHistory[];
+  voteCount: number;
 }
 
 interface HistoryData {
   overallHistory: RatingHistory[];
   eventHistories: EventHistory[];
+  overallVoteCount: number;
   events: Array<{
     id: string;
     name: string;
@@ -369,7 +371,26 @@ export default function PlayerPage({
 
             {/* Debug Info */}
             <div className="mt-2 text-xs text-gray-500">
-              Overall History: {historyData.overallHistory.length} votes
+              {selectedHistory === "overall" ? (
+                <div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Total votes: {historyData.overallVoteCount || 0}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {
+                      historyData.events.find((e) => e.id === selectedHistory)
+                        ?.name
+                    }
+                    {" votes: "}
+                    {historyData.eventHistories.find(
+                      (eh) => eh.eventId === selectedHistory
+                    )?.voteCount || 0}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* History Type Selector */}
