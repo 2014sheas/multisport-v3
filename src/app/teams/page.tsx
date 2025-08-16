@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { Users, Trophy, Star } from "lucide-react";
+import Link from "next/link";
 
 interface Team {
   id: string;
   name: string;
+  abbreviation: string;
   color: string;
   averageRating: number;
   captain?: {
@@ -86,9 +88,10 @@ export default function TeamsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {teams.map((team) => (
-            <div
+            <Link
               key={team.id}
-              className="bg-white rounded-lg shadow-md p-6 border-l-4"
+              href={`/teams/${team.abbreviation}`}
+              className="bg-white rounded-lg shadow-md p-6 border-l-4 hover:shadow-lg transition-shadow cursor-pointer"
               style={{ borderLeftColor: team.color }}
             >
               <div className="flex items-center justify-between mb-4">
@@ -134,7 +137,7 @@ export default function TeamsPage() {
                     ))}
                 </div>
               )}
-            </div>
+            </Link>
           ))}
         </div>
       )}

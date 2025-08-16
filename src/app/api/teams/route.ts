@@ -129,6 +129,7 @@ export async function GET() {
         return {
           id: team.id,
           name: team.name,
+          abbreviation: team.abbreviation,
           color: team.color,
           averageRating,
           captain: captain

@@ -47,6 +47,7 @@ interface TeamMember {
   playerName: string;
   rating: number;
   trend: number;
+  globalRank: number;
 }
 
 export default function EventPage({
@@ -394,16 +395,34 @@ export default function EventPage({
                           key={member.playerId}
                           className="flex items-center justify-between py-3 px-4 bg-white rounded border shadow-sm"
                         >
-                          <span className="text-xs sm:text-sm font-medium text-gray-900">
+                          <Link
+                            href={`/players/${encodeURIComponent(
+                              member.playerName
+                            )}`}
+                            className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                          >
                             {member.playerName}
-                          </span>
+                          </Link>
                           <div className="flex items-center space-x-4 sm:space-x-6">
+                            {/* Global Rank */}
+                            <div className="text-center">
+                              <p className="text-xs sm:text-sm font-semibold text-gray-900">
+                                #{member.globalRank || "N/A"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Overall Rank
+                              </p>
+                            </div>
+
+                            {/* Rating */}
                             <div className="text-center">
                               <p className="text-xs sm:text-sm font-semibold text-gray-900">
                                 {member.rating}
                               </p>
                               <p className="text-xs text-gray-500">Rating</p>
                             </div>
+
+                            {/* 24h Trend */}
                             <div className="text-center">
                               <TrendIndicator trend={member.trend} />
                               <p className="text-xs text-gray-500">24h Trend</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   TrendingUp,
   Check,
@@ -333,9 +334,12 @@ export default function RankingsPage() {
                           </span>
                         </div>
                         <div className="flex items-center min-w-0 flex-1">
-                          <span className="font-medium text-gray-900 text-xs sm:text-sm truncate">
+                          <Link
+                            href={`/players/${encodeURIComponent(player.name)}`}
+                            className="font-medium text-blue-600 hover:text-blue-800 text-xs sm:text-sm truncate hover:underline"
+                          >
                             {player.name}
-                          </span>
+                          </Link>
                           {player.captainedTeams.length > 0 && (
                             <Star
                               className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 ml-1 flex-shrink-0"

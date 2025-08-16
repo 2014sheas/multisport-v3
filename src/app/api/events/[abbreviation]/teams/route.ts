@@ -94,6 +94,7 @@ export async function GET(
               playerName: member.player.name,
               rating: eventRating.rating,
               trend: trend,
+              globalRank: 0, // Will be calculated below
             };
           })
           .filter(
@@ -128,8 +129,37 @@ export async function GET(
           members: processedMembers.sort((a, b) => b.rating - a.rating), // Sort by rating descending
         };
       })
-      .filter((team): team is NonNullable<typeof team> => team !== null)
-      .sort((a, b) => b.averageRating - a.averageRating); // Sort teams by average rating descending
+      .filter((team): team is NonNullable<typeof team> => team !== null);
+
+    // Get global event rankings to determine player positions
+    const globalEventRankings = await prisma.eventRating.findMany({
+      where: {
+        eventId: event.id,
+      },
+      select: {
+        playerId: true,
+        rating: true,
+      },
+      orderBy: {
+        rating: "desc",
+      },
+    });
+
+    // Create a map of player ID to global event rank
+    const globalEventRankMap = new Map<string, number>();
+    globalEventRankings.forEach((rating, index) => {
+      globalEventRankMap.set(rating.playerId, index + 1);
+    });
+
+    // Add global rankings to all players
+    processedTeams.forEach((team) => {
+      team.members.forEach((member) => {
+        member.globalRank = globalEventRankMap.get(member.playerId) || 0;
+      });
+    });
+
+    // Sort teams by average rating descending
+    processedTeams.sort((a, b) => b.averageRating - a.averageRating);
 
     return NextResponse.json({ teams: processedTeams });
   } catch (error) {
