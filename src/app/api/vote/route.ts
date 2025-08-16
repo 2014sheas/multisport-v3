@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 // Elo calculation constants
 const K_FACTOR = 800; // Much higher K-factor for very dynamic ratings on 0-9999 scale
 const BASE_RATING = 5000; // Middle of the 0-9999 scale
-const RATING_SCALE = 2000; // Adjusted scale factor for 0-9999 range
+const RATING_SCALE = 750; // Adjusted scale factor for 0-9999 range
 
 function calculateEloChange(
   winnerRating: number,
