@@ -433,6 +433,32 @@ export default function AdminEventsPage() {
                       </div>
                     )}
 
+                  {/* Tournament Bracket Management */}
+                  {event.eventType === "TOURNAMENT" && (
+                    <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-md">
+                      <h4 className="text-sm font-medium text-purple-800 mb-3">
+                        Tournament Bracket Management
+                      </h4>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() =>
+                            window.open(
+                              `/events/${event.abbreviation}`,
+                              "_blank"
+                            )
+                          }
+                          className="inline-flex items-center px-3 py-1.5 border border-purple-300 shadow-sm text-xs font-medium rounded text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        >
+                          Manage Bracket
+                        </button>
+                        <span className="text-xs text-purple-600 self-center">
+                          Open event page to manage tournament seeding and
+                          brackets
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Actions */}
                   <div className="flex justify-end space-x-2 pt-4 border-t border-gray-100">
                     <button
@@ -444,7 +470,7 @@ export default function AdminEventsPage() {
                     </button>
                     <button
                       onClick={() => handleDeleteEvent(event.id)}
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                     >
                       <Trash2 className="w-3 h-3 mr-1" />
                       Delete

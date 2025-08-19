@@ -64,6 +64,7 @@ model Team {
   draftPicks   DraftPick[]
   members      TeamMember[]
   captain      Player?      @relation("TeamCaptain", fields: [captainId], references: [id])
+  tournamentParticipants TournamentParticipant[]
 
   @@index([captainId, id], map: "teams_captain_id_idx")
   @@map("teams")
@@ -100,6 +101,7 @@ model Event {
   eloHistory     EloHistory[]
   eventRatings   EventRating[]
   votes          Vote[]
+  tournamentBracket TournamentBracket?
 
   @@map("events")
 }
@@ -232,6 +234,67 @@ model EventRating {
   @@map("event_ratings")
 }
 
+model TournamentBracket {
+  id                String                @id @default(cuid())
+  eventId           String                @unique
+  event             Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status            TournamentStatus      @default(SEEDING)
+  participants      TournamentParticipant[]
+  matches           TournamentMatch[]
+  winnerId          String?
+  winner            TournamentParticipant? @relation("TournamentWinner", fields: [winnerId], references: [id])
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  @@map("tournament_brackets")
+}
+
+model TournamentParticipant {
+  id                    String              @id @default(cuid())
+  tournamentBracketId   String
+  tournamentBracket     TournamentBracket   @relation(fields: [tournamentBracketId], references: [id], onDelete: Cascade)
+  teamId                String
+  team                  Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  seed                  Int?
+  isEliminated          Boolean             @default(false)
+  eliminationRound      Int?
+  finalPosition         Int?
+  matchesAsTeam1        TournamentMatch[]  @relation("Team1")
+  matchesAsTeam2        TournamentMatch[]  @relation("Team2")
+  wonTournaments        TournamentBracket[] @relation("TournamentWinner")
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([tournamentBracketId, teamId])
+  @@index([tournamentBracketId, seed])
+  @@map("tournament_participants")
+}
+
+model TournamentMatch {
+  id                    String                @id @default(cuid())
+  tournamentBracketId   String
+  tournamentBracket     TournamentBracket     @relation(fields: [tournamentBracketId], references: [id], onDelete: Cascade)
+  team1Id               String
+  team1                 TournamentParticipant @relation("Team1", fields: [team1Id], references: [id], onDelete: Cascade)
+  team2Id               String
+  team2                 TournamentParticipant @relation("Team2", fields: [team2Id], references: [id], onDelete: Cascade)
+  round                 Int
+  matchNumber           Int
+  isWinnersBracket     Boolean
+  winnerId              String?
+  score                 Json? // [team1Score, team2Score]
+  status                MatchStatus           @default(SCHEDULED)
+  scheduledTime         DateTime?
+  location              String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@unique([tournamentBracketId, round, matchNumber, isWinnersBracket])
+  @@index([tournamentBracketId, round])
+  @@index([tournamentBracketId, isWinnersBracket])
+  @@map("tournament_matches")
+}
+
 enum EventType {
   TOURNAMENT
   SCORED
@@ -241,4 +304,18 @@ enum EventStatus {
   UPCOMING
   IN_PROGRESS
   COMPLETED
+}
+
+enum TournamentStatus {
+  SEEDING
+  BRACKET_GENERATED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
