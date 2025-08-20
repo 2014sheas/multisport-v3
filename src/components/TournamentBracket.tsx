@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Trophy } from "lucide-react";
+import GameCard from "./GameCard";
 
 interface Team {
   id: string;
@@ -20,18 +21,41 @@ interface Participant {
 
 interface Match {
   id: string;
-  team1Id: string; // This is now a participant ID
-  team2Id: string; // This is now a participant ID
+  team1Id: string | null;
+  team2Id: string | null;
   round: number;
   matchNumber: number;
   isWinnersBracket: boolean;
   winnerId?: string;
   score?: [number, number];
-  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  status:
+    | "SCHEDULED"
+    | "IN_PROGRESS"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "UNDETERMINED";
   scheduledTime?: string;
   location?: string;
-  team1?: Participant; // Include the actual participant data
-  team2?: Participant; // Include the actual participant data
+  team1?: Participant;
+  team2?: Participant;
+
+  // Placeholder references
+  team1FromMatchId?: string | null;
+  team1IsWinner?: boolean | null;
+  team2FromMatchId?: string | null;
+  team2IsWinner?: boolean | null;
+
+  // Relations to referenced matches
+  team1FromMatch?: {
+    matchNumber: number;
+    team1?: Participant;
+    team2?: Participant;
+  } | null;
+  team2FromMatch?: {
+    matchNumber: number;
+    team1?: Participant;
+    team2?: Participant;
+  } | null;
 }
 
 interface TournamentBracketProps {
@@ -162,137 +186,12 @@ export default function TournamentBracket({
     }
   };
 
-  const renderMatch = (match: Match) => {
-    // Use participant data directly if available, otherwise fall back to team lookup
-    const team1 = match.team1?.team || getTeamById(match.team1Id);
-    const team2 = match.team2?.team || getTeamById(match.team2Id);
-    const winner = match.winnerId ? getTeamById(match.winnerId) : null;
-
-    // Skip matches with placeholder teams (like ADVANCE_, LOSER_, etc.)
-    if (
-      !team1 ||
-      !team2 ||
-      match.team1Id.startsWith("ADVANCE_") ||
-      match.team1Id.startsWith("LOSER_") ||
-      match.team2Id.startsWith("ADVANCE_") ||
-      match.team2Id.startsWith("LOSER_")
-    ) {
-      return null;
-    }
-
-    const isClickable =
-      isAdmin &&
-      (match.status === "SCHEDULED" || match.status === "IN_PROGRESS");
-    const isSelected = selectedMatch === match.id;
-
-    return (
-      <div
-        key={match.id}
-        className={`relative p-3 border rounded-lg min-w-[200px] ${
-          isClickable ? "cursor-pointer hover:border-blue-300" : ""
-        } ${isSelected ? "border-blue-500 bg-blue-50" : ""} ${
-          match.status === "COMPLETED"
-            ? "bg-green-50 border-green-200"
-            : match.status === "IN_PROGRESS"
-            ? "bg-yellow-50 border-yellow-200"
-            : "bg-white border-gray-200"
-        }`}
-        onClick={() => handleMatchClick(match.id)}
-      >
-        {/* Match header */}
-        <div className="text-xs text-gray-500 mb-2">
-          {match.isWinnersBracket ? "Winners" : "Losers"} Bracket - Round{" "}
-          {match.round}
-        </div>
-
-        {/* Team 1 */}
-        <div
-          className={`flex items-center space-x-2 p-2 rounded ${
-            winner?.id === team1.id ? "bg-green-100" : ""
-          }`}
-        >
-          <span
-            className="text-sm font-medium px-2 py-1 rounded-full text-white font-bold"
-            style={{
-              backgroundColor: team1.color,
-            }}
-          >
-            {team1.name}
-          </span>
-          {team1.seed && (
-            <span className="text-xs bg-gray-200 px-1 rounded text-black">
-              #{team1.seed}
-            </span>
-          )}
-          {match.score && (
-            <span className="ml-auto font-semibold text-black">
-              {match.score[0]}
-            </span>
-          )}
-        </div>
-
-        {/* Team 2 */}
-        <div
-          className={`flex items-center space-x-2 p-2 rounded ${
-            winner?.id === team2.id ? "bg-green-100" : ""
-          }`}
-        >
-          <span
-            className="text-sm font-medium px-2 py-1 rounded-full text-white font-bold"
-            style={{
-              backgroundColor: team2.color,
-            }}
-          >
-            {team2.name}
-          </span>
-          {team2.seed && (
-            <span className="text-xs bg-gray-200 px-1 rounded text-black">
-              #{team2.seed}
-            </span>
-          )}
-          {match.score && (
-            <span className="ml-auto font-semibold text-black">
-              {match.score[1]}
-            </span>
-          )}
-        </div>
-
-        {/* Match status */}
-        <div className="mt-2 text-xs text-center">
-          <span
-            className={`inline-flex px-2 py-1 rounded-full ${
-              match.status === "COMPLETED"
-                ? "bg-green-100 text-green-800"
-                : match.status === "IN_PROGRESS"
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-gray-100 text-gray-800"
-            }`}
-          >
-            {match.status.replace("_", " ")}
-          </span>
-        </div>
-
-        {/* Match details */}
-        {match.scheduledTime && (
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            {new Date(match.scheduledTime).toLocaleTimeString()}
-          </div>
-        )}
-        {match.location && (
-          <div className="mt-1 text-xs text-gray-500 text-center">
-            📍 {match.location}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const renderBracket = (isWinners: boolean) => {
     const maxRounds = getMaxRounds();
     const title = isWinners ? "Winners Bracket" : "Losers Bracket";
 
     return (
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-2">
             <Trophy className="w-5 h-5 text-gray-600" />
@@ -316,19 +215,65 @@ export default function TournamentBracket({
           )}
         </div>
 
-        <div className="flex space-x-8 overflow-x-auto pb-4">
+        <div className="flex space-x-12 overflow-x-auto pb-4 min-h-[400px]">
           {Array.from({ length: maxRounds }, (_, roundIndex) => {
             const round = roundIndex + 1;
             const roundMatches = getMatchesByRound(round, isWinners);
 
             if (roundMatches.length === 0) return null;
 
+            // Calculate vertical spacing for bracket effect
+            const getVerticalSpacing = (
+              round: number,
+              totalMatches: number
+            ) => {
+              // More spacing for later rounds to create bracket funnel effect
+              const baseSpacing = 16; // Base spacing in rem
+              const roundMultiplier = Math.pow(2, round - 1);
+              return baseSpacing * roundMultiplier;
+            };
+
+            const verticalSpacing = getVerticalSpacing(
+              round,
+              roundMatches.length
+            );
+
             return (
-              <div key={round} className="flex flex-col space-y-4">
-                <div className="text-center font-medium text-gray-700 mb-2">
-                  Round {round}
+              <div
+                key={round}
+                className="flex flex-col justify-center min-w-[220px]"
+              >
+                {/* Round Header */}
+                <div className="text-center font-semibold text-gray-800 mb-6 sticky top-0 bg-white py-2 border-b border-gray-200">
+                  <span className="inline-block bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm">
+                    Round {round}
+                  </span>
                 </div>
-                {roundMatches.map((match) => renderMatch(match))}
+
+                {/* Matches with bracket spacing */}
+                <div className="flex flex-col items-center justify-center flex-1">
+                  {roundMatches.map((match, matchIndex) => (
+                    <div
+                      key={match.id}
+                      className="flex items-center justify-center"
+                      style={{
+                        marginTop:
+                          matchIndex === 0 ? "0" : `${verticalSpacing}px`,
+                        marginBottom:
+                          matchIndex === roundMatches.length - 1
+                            ? "0"
+                            : `${verticalSpacing / 2}px`,
+                      }}
+                    >
+                      <GameCard
+                        match={match}
+                        isAdmin={isAdmin}
+                        onMatchClick={handleMatchClick}
+                        selectedMatch={selectedMatch}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}

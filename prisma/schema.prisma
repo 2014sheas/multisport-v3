@@ -274,10 +274,10 @@ model TournamentMatch {
   id                    String                @id @default(cuid())
   tournamentBracketId   String
   tournamentBracket     TournamentBracket     @relation(fields: [tournamentBracketId], references: [id], onDelete: Cascade)
-  team1Id               String
-  team1                 TournamentParticipant @relation("Team1", fields: [team1Id], references: [id], onDelete: Cascade)
-  team2Id               String
-  team2                 TournamentParticipant @relation("Team2", fields: [team2Id], references: [id], onDelete: Cascade)
+  team1Id               String?
+  team1                 TournamentParticipant? @relation("Team1", fields: [team1Id], references: [id], onDelete: Cascade)
+  team2Id               String?
+  team2                 TournamentParticipant? @relation("Team2", fields: [team2Id], references: [id], onDelete: Cascade)
   round                 Int
   matchNumber           Int
   isWinnersBracket     Boolean
@@ -286,6 +286,19 @@ model TournamentMatch {
   status                MatchStatus           @default(SCHEDULED)
   scheduledTime         DateTime?
   location              String?
+  
+  // Placeholder references for undetermined matches
+  team1FromMatchId      String?               // ID of match that determines team1
+  team1FromMatch        TournamentMatch?      @relation("Team1FromMatch", fields: [team1FromMatchId], references: [id], onDelete: SetNull)
+  team1IsWinner         Boolean?              // true if team1 comes from winner, false if from loser
+  team2FromMatchId      String?               // ID of match that determines team2
+  team2FromMatch        TournamentMatch?      @relation("Team2FromMatch", fields: [team2FromMatchId], references: [id], onDelete: SetNull)
+  team2IsWinner         Boolean?              // true if team2 comes from winner, false if from loser
+  
+  // Opposite relations for matches that feed into this match
+  feedsIntoMatches      TournamentMatch[]     @relation("Team1FromMatch")
+  feedsIntoMatches2     TournamentMatch[]     @relation("Team2FromMatch")
+  
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
@@ -318,4 +331,5 @@ enum MatchStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  UNDETERMINED
 }

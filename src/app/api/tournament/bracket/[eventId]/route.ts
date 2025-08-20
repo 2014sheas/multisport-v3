@@ -30,6 +30,37 @@ export async function GET(
                 team: true,
               },
             },
+            // Include referenced matches to get their match numbers and teams
+            team1FromMatch: {
+              select: {
+                matchNumber: true,
+                team1: {
+                  include: {
+                    team: true,
+                  },
+                },
+                team2: {
+                  include: {
+                    team: true,
+                  },
+                },
+              },
+            },
+            team2FromMatch: {
+              select: {
+                matchNumber: true,
+                team1: {
+                  include: {
+                    team: true,
+                  },
+                },
+                team2: {
+                  include: {
+                    team: true,
+                  },
+                },
+              },
+            },
           },
         },
         winner: {

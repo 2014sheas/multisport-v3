@@ -52,8 +52,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine update data based on whether we're completing the match
-    const updateData: any = {
+    const updateData: {
+      score: [number, number];
+      winnerId?: string;
+      status: "IN_PROGRESS" | "COMPLETED";
+    } = {
       score,
+      status: "IN_PROGRESS", // Default status
     };
 
     if (completed && winnerId) {
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Only do tournament progression if the match is being completed
-    if (completed && winnerId) {
+    if (completed && winnerId && match.team1Id && match.team2Id) {
       // Get loser ID
       const loserId =
         winnerId === match.team1Id ? match.team2Id : match.team1Id;
@@ -114,72 +119,75 @@ export async function POST(request: NextRequest) {
 }
 
 async function advanceWinnerToNextRound(
-  match: any,
+  match: {
+    id: string;
+    tournamentBracketId: string;
+    round: number;
+    matchNumber: number;
+    isWinnersBracket: boolean;
+  },
   winnerId: string,
   loserId: string
 ) {
   const { tournamentBracketId, round, matchNumber, isWinnersBracket } = match;
 
-  // Find next match for winner
-  const nextMatch = await prisma.tournamentMatch.findFirst({
+  // Find matches that are waiting for this match's result
+  const nextMatches = await prisma.tournamentMatch.findMany({
     where: {
       tournamentBracketId,
-      round: round + 1,
-      isWinnersBracket,
       OR: [
-        { team1Id: { startsWith: "TBD_" } },
-        { team2Id: { startsWith: "TBD_" } },
-        { team1Id: { startsWith: "LOSER_TBD_" } },
-        { team2Id: { startsWith: "LOSER_TBD_" } },
+        { team1FromMatchId: match.id }, // Use actual match ID, not matchNumber
+        { team2FromMatchId: match.id },
       ],
     },
   });
 
-  if (nextMatch) {
-    // Determine which team slot to fill
-    if (
-      nextMatch.team1Id.startsWith("TBD_") ||
-      nextMatch.team1Id.startsWith("LOSER_TBD_")
-    ) {
-      await prisma.tournamentMatch.update({
-        where: { id: nextMatch.id },
-        data: { team1Id: winnerId },
-      });
-    } else if (
-      nextMatch.team2Id.startsWith("TBD_") ||
-      nextMatch.team2Id.startsWith("LOSER_TBD_")
-    ) {
-      await prisma.tournamentMatch.update({
-        where: { id: nextMatch.id },
-        data: { team2Id: winnerId },
-      });
-    }
-  }
-
-  // If this is a winners bracket match, loser goes to losers bracket
-  if (isWinnersBracket) {
-    const losersBracketMatch = await prisma.tournamentMatch.findFirst({
-      where: {
-        tournamentBracketId,
-        round: 1,
-        isWinnersBracket: false,
-        OR: [
-          { team1Id: { startsWith: "LOSER_1_" } },
-          { team2Id: { startsWith: "LOSER_1_" } },
-        ],
-      },
-    });
-
-    if (losersBracketMatch) {
-      if (losersBracketMatch.team1Id.startsWith("LOSER_1_")) {
+  // Update each waiting match
+  for (const nextMatch of nextMatches) {
+    if (nextMatch.team1FromMatchId === match.id) {
+      // This match is waiting for team1 from our match
+      const isWinner = nextMatch.team1IsWinner;
+      if (isWinner && match.isWinnersBracket) {
+        // Waiting for winner, and we're in winners bracket
         await prisma.tournamentMatch.update({
-          where: { id: losersBracketMatch.id },
-          data: { team1Id: loserId },
+          where: { id: nextMatch.id },
+          data: {
+            team1Id: winnerId,
+            status: "SCHEDULED",
+          },
         });
-      } else if (losersBracketMatch.team2Id.startsWith("LOSER_1_")) {
+      } else if (!isWinner && match.isWinnersBracket) {
+        // Waiting for loser, and we're in winners bracket
         await prisma.tournamentMatch.update({
-          where: { id: losersBracketMatch.id },
-          data: { team2Id: loserId },
+          where: { id: nextMatch.id },
+          data: {
+            team1Id: loserId,
+            status: "SCHEDULED",
+          },
+        });
+      }
+    }
+
+    if (nextMatch.team2FromMatchId === match.id) {
+      // This match is waiting for team2 from our match
+      const isWinner = nextMatch.team2IsWinner;
+      if (isWinner && match.isWinnersBracket) {
+        // Waiting for winner, and we're in winners bracket
+        await prisma.tournamentMatch.update({
+          where: { id: nextMatch.id },
+          data: {
+            team2Id: winnerId,
+            status: "SCHEDULED",
+          },
+        });
+      } else if (!isWinner && match.isWinnersBracket) {
+        // Waiting for loser, and we're in winners bracket
+        await prisma.tournamentMatch.update({
+          where: { id: nextMatch.id },
+          data: {
+            team2Id: loserId,
+            status: "SCHEDULED",
+          },
         });
       }
     }
