@@ -31,10 +31,8 @@ export default function SchedulePage() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log("API response data:", data);
         // The API returns { events: [...] }, so we need to extract the events array
         const eventsArray = data.events || [];
-        console.log("Events array:", eventsArray);
         setEvents(eventsArray);
       } else {
         const errorText = await response.text();

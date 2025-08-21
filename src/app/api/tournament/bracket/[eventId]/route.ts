@@ -14,8 +14,21 @@ export async function GET(
       where: { eventId },
       include: {
         participants: {
-          include: {
-            team: true,
+          select: {
+            id: true,
+            teamId: true,
+            seed: true,
+            isEliminated: true,
+            eliminationRound: true,
+            finalPosition: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+                abbreviation: true,
+                color: true,
+              },
+            },
           },
         },
         matches: {
@@ -62,6 +75,7 @@ export async function GET(
               },
             },
           },
+          orderBy: [{ round: "asc" }, { matchNumber: "asc" }],
         },
         winner: {
           include: {

@@ -163,7 +163,6 @@ export default function EventPage({
     try {
       // Store seeds in local state for later use
       setConfirmedSeeds(seeds);
-      console.log("Seeds confirmed successfully");
     } catch (error) {
       console.error("Error confirming seeds:", error);
     }
@@ -188,7 +187,6 @@ export default function EventPage({
       );
 
       if (deleteResponse.ok) {
-        console.log("Tournament bracket deleted");
         // Reset confirmed seeds
         setConfirmedSeeds([]);
         // Refresh data
@@ -210,8 +208,6 @@ export default function EventPage({
     try {
       // If a bracket already exists, just move the event to IN_PROGRESS
       if (tournamentBracket) {
-        console.log("Bracket already exists, just updating event status");
-
         // Update event status to IN_PROGRESS
         const updateResponse = await fetch(`/api/admin/events/${event?.id}`, {
           method: "PUT",
@@ -231,7 +227,6 @@ export default function EventPage({
         });
 
         if (updateResponse.ok) {
-          console.log("Event status updated to IN_PROGRESS");
           // Refresh event data
           await fetchEventData();
         } else {
@@ -249,8 +244,6 @@ export default function EventPage({
         return;
       }
 
-      console.log("Starting tournament with seeds:", seedsToUse);
-
       // Generate the bracket
       const response = await fetch("/api/tournament/generate-bracket", {
         method: "POST",
@@ -263,8 +256,6 @@ export default function EventPage({
       });
 
       if (response.ok) {
-        console.log("Bracket generated successfully");
-
         // Update event status to IN_PROGRESS
         const updateResponse = await fetch(`/api/admin/events/${event?.id}`, {
           method: "PUT",
@@ -284,7 +275,6 @@ export default function EventPage({
         });
 
         if (updateResponse.ok) {
-          console.log("Event status updated to IN_PROGRESS");
           // Refresh event data and bracket
           await fetchEventData();
           if (event) {
@@ -758,6 +748,7 @@ export default function EventPage({
                     )?.seed,
                   }))}
                   matches={tournamentBracket.matches}
+                  participants={tournamentBracket.participants}
                   isAdmin={isAdmin}
                   eventStatus={event.status}
                   onMatchUpdate={handleMatchUpdate}

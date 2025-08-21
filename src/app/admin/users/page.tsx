@@ -43,8 +43,7 @@ export default function UsersPage() {
       ]);
       const usersData = await usersResponse.json();
       const playersData = await playersResponse.json();
-      console.log("Fetched users:", usersData.users);
-      console.log("Fetched players:", playersData.players);
+
       setUsers(usersData.users);
       setPlayers(playersData.players);
     } catch (error) {
@@ -62,8 +61,6 @@ export default function UsersPage() {
 
   const handleLinkPlayer = async (userId: string, playerId: string) => {
     try {
-      console.log(`Linking user ${userId} to player ${playerId}`);
-
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "PUT",
         headers: {
@@ -75,7 +72,6 @@ export default function UsersPage() {
       });
 
       if (response.ok) {
-        console.log("Player linked successfully");
         setShowLinkModal(false);
         setEditingUser(null);
         fetchUsers();

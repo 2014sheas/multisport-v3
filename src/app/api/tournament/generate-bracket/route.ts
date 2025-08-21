@@ -365,12 +365,12 @@ function getPlaceholderReferences(
       team2IsWinner: true,
     };
   } else if (round === 5 && isWinnersBracket) {
-    // If necessary game: loser of championship vs winner of losers final
+    // If necessary game: winner of championship vs loser of championship
     return {
       team1FromMatch: "6", // Championship (game 6)
-      team1IsWinner: false,
-      team2FromMatch: "5", // Losers final (game 5)
-      team2IsWinner: true,
+      team1IsWinner: true, // Winner of championship
+      team2FromMatch: "6", // Championship (game 6)
+      team2IsWinner: false, // Loser of championship
     };
   }
 
