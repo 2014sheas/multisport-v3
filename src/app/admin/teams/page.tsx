@@ -298,14 +298,14 @@ export default function AdminTeamsPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div className="flex items-center">
           <Users className="w-6 h-6 text-blue-600 mr-3" />
           <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
         </div>
         <button
           onClick={() => setShowCreateTeam(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
+          className="bg-blue-600 text-white px-4 py-3 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 flex items-center justify-center w-full sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create Team
@@ -345,7 +345,7 @@ export default function AdminTeamsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
         {/* Teams Section */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Teams</h2>
@@ -375,8 +375,8 @@ export default function AdminTeamsPage() {
                     className="bg-white rounded-lg shadow-md p-4 border-l-4"
                     style={{ borderLeftColor: team.color }}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-3">
+                      <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">
                           {team.name}
                         </h3>
@@ -421,17 +421,17 @@ export default function AdminTeamsPage() {
                           | {getPlayersByTeam(team.id).length} players
                         </p>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 flex-shrink-0">
                         <button
                           onClick={() => handleEditTeam(team)}
-                          className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
+                          className="text-xs bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200"
                         >
                           Edit
                         </button>
                         {getPlayersByTeam(team.id).length > 0 && (
                           <button
                             onClick={() => handleAssignCaptain(team.id)}
-                            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                            className="text-xs bg-blue-100 text-blue-700 px-3 py-2 rounded hover:bg-blue-200"
                           >
                             Assign Captain
                           </button>
@@ -444,11 +444,11 @@ export default function AdminTeamsPage() {
                           key={player.id}
                           className="flex items-center justify-between p-2 bg-gray-50 rounded"
                         >
-                          <div className="flex-1">
-                            <span className="text-sm font-medium text-gray-900">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-900 block truncate">
                               {player.name}
                             </span>
-                            <div className="text-xs text-gray-500 flex items-center space-x-3">
+                            <div className="text-xs text-gray-500 flex flex-wrap items-center gap-2 mt-1">
                               <span
                                 className={`px-2 py-1 rounded text-xs font-medium ${
                                   player.eloRating >= 6500
@@ -466,15 +466,15 @@ export default function AdminTeamsPage() {
                               <span>Wins: {player.wins}</span>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2 ml-2">
                             <button
                               onClick={() =>
                                 handleAssignToTeam(player.id, null)
                               }
                               disabled={saving}
-                              className="text-red-600 hover:text-red-800 text-xs"
+                              className="text-red-600 hover:text-red-800 text-xs p-2 rounded hover:bg-red-50"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -533,11 +533,11 @@ export default function AdminTeamsPage() {
                       key={player.id}
                       className="flex items-center justify-between p-2 bg-gray-50 rounded"
                     >
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-gray-900">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-900 block truncate">
                           {player.name}
                         </span>
-                        <div className="text-xs text-gray-500 flex items-center space-x-3">
+                        <div className="text-xs text-gray-500 flex flex-wrap items-center gap-2 mt-1">
                           <span
                             className={`px-2 py-1 rounded text-xs font-medium ${
                               player.eloRating >= 6500
@@ -555,7 +555,7 @@ export default function AdminTeamsPage() {
                           <span>Wins: {player.wins}</span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 ml-2">
                         <select
                           onChange={(e) =>
                             handleAssignToTeam(
@@ -564,7 +564,7 @@ export default function AdminTeamsPage() {
                             )
                           }
                           disabled={saving}
-                          className="text-xs border border-gray-300 rounded px-2 py-1"
+                          className="text-xs border border-gray-300 rounded px-2 py-2 min-w-[120px]"
                         >
                           <option value="">Assign to team...</option>
                           {teams.map((team) => (
@@ -585,8 +585,8 @@ export default function AdminTeamsPage() {
 
       {/* Create Team Modal */}
       {showCreateTeam && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-4 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 Create New Team
@@ -610,21 +610,21 @@ export default function AdminTeamsPage() {
                   />
                 </div>
 
-                <div className="flex justify-end space-x-3">
+                <div className="flex flex-col sm:flex-row justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       setShowCreateTeam(false);
                       setCreateTeamData({ name: "" });
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
                     {saving ? "Creating..." : "Create Team"}
                   </button>
@@ -637,8 +637,8 @@ export default function AdminTeamsPage() {
 
       {/* Captain Assignment Modal */}
       {showCaptainModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-4 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 Assign Team Captain
@@ -663,7 +663,7 @@ export default function AdminTeamsPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end space-x-3">
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -671,14 +671,14 @@ export default function AdminTeamsPage() {
                     setSelectedTeamId("");
                     setSelectedCaptainId("");
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmitCaptainAssignment}
                   disabled={saving || !selectedCaptainId}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? "Assigning..." : "Assign Captain"}
                 </button>
@@ -690,8 +690,8 @@ export default function AdminTeamsPage() {
 
       {/* Edit Team Modal */}
       {showEditTeamModal && editingTeam && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-4 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 Edit Team
@@ -751,7 +751,7 @@ export default function AdminTeamsPage() {
                     empty to auto-generate.
                   </p>
                 </div>
-                <div className="flex justify-end space-x-3">
+                <div className="flex flex-col sm:flex-row justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -761,14 +761,14 @@ export default function AdminTeamsPage() {
                       setEditTeamColor("#3B82F6"); // Reset color
                       setEditTeamAbbreviation(""); // Reset abbreviation
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
                     {saving ? "Updating..." : "Update Team"}
                   </button>

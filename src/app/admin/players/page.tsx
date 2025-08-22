@@ -165,13 +165,13 @@ export default function AdminPlayersPage() {
   return (
     <AdminGuard>
       <div>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
           <h1 className="text-2xl font-bold text-gray-900">
             Player Management
           </h1>
           <button
             onClick={() => setShowAddForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
+            className="bg-blue-600 text-white px-4 py-3 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 flex items-center justify-center w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Player
@@ -180,7 +180,7 @@ export default function AdminPlayersPage() {
 
         {/* Search and Sort Controls */}
         <div className="mb-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             {/* Search */}
             <div className="flex-1">
               <input
@@ -193,7 +193,7 @@ export default function AdminPlayersPage() {
             </div>
 
             {/* Sort Controls */}
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -205,30 +205,32 @@ export default function AdminPlayersPage() {
                 <option value="wins">Wins</option>
                 <option value="gamesPlayed">Games</option>
               </select>
-              <button
-                onClick={() => {
-                  const newOrder = sortOrder === "asc" ? "desc" : "asc";
-                  setSortOrder(newOrder);
-                  fetchPlayers(1, searchTerm, sortBy, newOrder);
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {sortOrder === "asc" ? "↑" : "↓"}
-              </button>
-            </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const newOrder = sortOrder === "asc" ? "desc" : "asc";
+                    setSortOrder(newOrder);
+                    fetchPlayers(1, searchTerm, sortBy, newOrder);
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {sortOrder === "asc" ? "↑" : "↓"}
+                </button>
 
-            {/* Search Button */}
-            <button
-              onClick={() => fetchPlayers(1, searchTerm, sortBy, sortOrder)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >
-              Search
-            </button>
+                {/* Search Button */}
+                <button
+                  onClick={() => fetchPlayers(1, searchTerm, sortBy, sortOrder)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex-1 sm:flex-none"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Players Table */}
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        {/* Players Table - Desktop */}
+        <div className="hidden lg:block bg-white shadow-md rounded-lg overflow-hidden">
           {loading && players.length > 0 && (
             <div className="p-4 text-center bg-blue-50 border-b border-blue-200">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 inline-block mr-2"></div>
@@ -319,15 +321,100 @@ export default function AdminPlayersPage() {
           )}
         </div>
 
+        {/* Players Cards - Mobile */}
+        <div className="lg:hidden space-y-4">
+          {loading && players.length > 0 && (
+            <div className="p-4 text-center bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 inline-block mr-2"></div>
+              <span className="text-sm text-blue-600">Updating players...</span>
+            </div>
+          )}
+          {players.length === 0 ? (
+            <div className="bg-white shadow-md rounded-lg p-8 text-center">
+              <Users className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No players
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Get started by creating your first player.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {players.map((player) => (
+                <div
+                  key={player.id}
+                  className="bg-white shadow-md rounded-lg p-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-medium text-gray-900 truncate">
+                        {player.name}
+                      </h3>
+                      <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Rating:</span>
+                          <span className="ml-2 font-medium text-gray-900">
+                            {player.eloRating}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Experience:</span>
+                          <span className="ml-2 font-medium text-gray-900">
+                            {player.experience} years
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Wins:</span>
+                          <span className="ml-2 font-medium text-gray-900">
+                            {player.wins}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Games:</span>
+                          <span className="ml-2 font-medium text-gray-900">
+                            {player.gamesPlayed}
+                          </span>
+                        </div>
+                      </div>
+                      {player.user && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                          <div className="text-sm">
+                            <span className="text-gray-500">Linked to:</span>
+                            <div className="font-medium text-gray-900 mt-1">
+                              {player.user.name}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {player.user.email}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="ml-4 flex-shrink-0">
+                      <button
+                        onClick={() => handleEditClick(player)}
+                        className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Pagination Controls */}
         {pagination.totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
+          <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="text-sm text-gray-700 text-center sm:text-left">
               Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
               {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
               of {pagination.total} results
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center sm:justify-end space-x-2">
               <button
                 onClick={() =>
                   fetchPlayers(
@@ -342,7 +429,7 @@ export default function AdminPlayersPage() {
               >
                 Previous
               </button>
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 px-3 py-2">
                 Page {pagination.page} of {pagination.totalPages}
               </span>
               <button
@@ -365,8 +452,8 @@ export default function AdminPlayersPage() {
 
         {/* Add Player Form */}
         {showAddForm && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-4 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   Add New Player
@@ -399,6 +486,8 @@ export default function AdminPlayersPage() {
                           eloRating: parseInt(e.target.value) || 5000,
                         })
                       }
+                      min="0"
+                      max="9999"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -415,12 +504,13 @@ export default function AdminPlayersPage() {
                           experience: parseInt(e.target.value) || 0,
                         })
                       }
+                      min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Wins
+                      Starting Wins
                     </label>
                     <input
                       type="number"
@@ -431,20 +521,29 @@ export default function AdminPlayersPage() {
                           wins: parseInt(e.target.value) || 0,
                         })
                       }
+                      min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
-                  <div className="flex justify-end space-x-3">
+                  <div className="flex flex-col sm:flex-row justify-end gap-3">
                     <button
                       type="button"
-                      onClick={() => setShowAddForm(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setFormData({
+                          name: "",
+                          eloRating: 5000,
+                          experience: 0,
+                          wins: 0,
+                        });
+                      }}
+                      className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                      className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                     >
                       Add Player
                     </button>
@@ -455,10 +554,10 @@ export default function AdminPlayersPage() {
           </div>
         )}
 
-        {/* Edit Player Modal */}
+        {/* Edit Player Form */}
         {editingPlayer && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-4 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   Edit Player
@@ -494,6 +593,8 @@ export default function AdminPlayersPage() {
                           eloRating: parseInt(e.target.value) || 5000,
                         })
                       }
+                      min="0"
+                      max="9999"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -510,6 +611,7 @@ export default function AdminPlayersPage() {
                           experience: parseInt(e.target.value) || 0,
                         })
                       }
+                      min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -526,10 +628,11 @@ export default function AdminPlayersPage() {
                           wins: parseInt(e.target.value) || 0,
                         })
                       }
+                      min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
-                  <div className="flex justify-end space-x-3">
+                  <div className="flex flex-col sm:flex-row justify-end gap-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -541,13 +644,13 @@ export default function AdminPlayersPage() {
                           wins: 0,
                         });
                       }}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                      className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                      className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                     >
                       Update Player
                     </button>
