@@ -157,32 +157,83 @@ BEGIN
     RAISE NOTICE 'ELO scale should already be 0-9999 from previous migration';
 END $$;
 
--- 10. Add any missing indexes
+-- 10. Add scorekeeper role to users table
 DO $$ 
 BEGIN
-    -- Add missing indexes if they don't exist
     IF NOT EXISTS (
-        SELECT 1 FROM pg_indexes 
-        WHERE indexname = 'players_elo_rating_idx'
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' 
+        AND column_name = 'isScorekeeper'
     ) THEN
-        CREATE INDEX "players_elo_rating_idx" ON "public"."players"("eloRating");
-        RAISE NOTICE 'Added players_elo_rating_idx';
+        ALTER TABLE "public"."users" ADD COLUMN "isScorekeeper" BOOLEAN DEFAULT FALSE;
+        RAISE NOTICE 'Added isScorekeeper column to users table';
+    ELSE
+        RAISE NOTICE 'isScorekeeper column already exists in users table';
     END IF;
-    
+END $$;
+
+-- 11. Create GameStatus enum if it doesn't exist
+DO $$ 
+BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM pg_indexes 
-        WHERE indexname = 'players_is_active_idx'
+        SELECT 1 FROM pg_type WHERE typname = 'GameStatus'
     ) THEN
-        CREATE INDEX "players_is_active_idx" ON "public"."players"("isActive");
-        RAISE NOTICE 'Added players_is_active_idx';
+        CREATE TYPE "public"."GameStatus" AS ENUM (
+            'SCHEDULED',
+            'IN_PROGRESS', 
+            'COMPLETED',
+            'CANCELLED',
+            'UNDETERMINED'
+        );
+        RAISE NOTICE 'Created GameStatus enum';
+    ELSE
+        RAISE NOTICE 'GameStatus enum already exists';
     END IF;
-    
+END $$;
+
+-- 12. Create games table if it doesn't exist
+DO $$ 
+BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM pg_indexes 
-        WHERE indexname = 'teams_captain_id_idx'
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = 'games'
     ) THEN
-        CREATE INDEX "teams_captain_id_idx" ON "public"."teams"("captainId", "id");
-        RAISE NOTICE 'Added teams_captain_id_idx';
+        CREATE TABLE "public"."games" (
+            "id" TEXT NOT NULL,
+            "eventId" TEXT NOT NULL,
+            "team1Id" TEXT,
+            "team2Id" TEXT,
+            "team1Score" INTEGER,
+            "team2Score" INTEGER,
+            "status" "public"."GameStatus" NOT NULL DEFAULT 'SCHEDULED',
+            "scheduledTime" TIMESTAMP(3),
+            "location" TEXT,
+            "scorekeeperId" TEXT,
+            "completedAt" TIMESTAMP(3),
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "games_pkey" PRIMARY KEY ("id")
+        );
+        
+        -- Add foreign key constraints
+        ALTER TABLE "public"."games" ADD CONSTRAINT "games_eventId_fkey" 
+            FOREIGN KEY ("eventId") REFERENCES "public"."events"("id") ON DELETE CASCADE;
+        ALTER TABLE "public"."games" ADD CONSTRAINT "games_team1Id_fkey" 
+            FOREIGN KEY ("team1Id") REFERENCES "public"."teams"("id");
+        ALTER TABLE "public"."games" ADD CONSTRAINT "games_team2Id_fkey" 
+            FOREIGN KEY ("team2Id") REFERENCES "public"."teams"("id");
+        ALTER TABLE "public"."games" ADD CONSTRAINT "games_scorekeeperId_fkey" 
+            FOREIGN KEY ("scorekeeperId") REFERENCES "public"."users"("id");
+        
+        -- Add indexes
+        CREATE INDEX "games_eventId_idx" ON "public"."games"("eventId");
+        CREATE INDEX "games_team1Id_idx" ON "public"."games"("team1Id");
+        CREATE INDEX "games_team2Id_idx" ON "public"."games"("team2Id");
+        CREATE INDEX "games_status_idx" ON "public"."games"("status");
+        
+        RAISE NOTICE 'Created games table with constraints and indexes';
+    ELSE
+        RAISE NOTICE 'games table already exists';
     END IF;
 END $$;
 

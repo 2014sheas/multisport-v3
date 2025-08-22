@@ -9,6 +9,7 @@ interface User {
   name: string;
   email: string;
   isAdmin: boolean;
+  isScorekeeper: boolean;
   player?: {
     id: string;
     name: string;
@@ -194,15 +195,31 @@ export default function UsersPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.isAdmin
-                            ? "bg-red-100 text-red-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {user.isAdmin ? "Admin" : "User"}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500 mr-2">
+                          Status:
+                        </span>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            user.isAdmin
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {user.isAdmin ? "Admin" : "User"}
+                        </span>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            user.isScorekeeper
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {user.isScorekeeper
+                            ? "Scorekeeper"
+                            : "Not Scorekeeper"}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       {user.player ? (
@@ -281,6 +298,17 @@ export default function UsersPage() {
                           >
                             {user.isAdmin ? "Admin" : "User"}
                           </span>
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.isScorekeeper
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {user.isScorekeeper
+                              ? "Scorekeeper"
+                              : "Not Scorekeeper"}
+                          </span>
                         </div>
 
                         {user.player ? (
@@ -326,6 +354,85 @@ export default function UsersPage() {
                           <Link className="w-5 h-5" />
                         </button>
                       )}
+
+                      {/* Role Management Buttons */}
+                      <div className="flex space-x-2 mt-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(
+                                `/api/admin/users/${user.id}`,
+                                {
+                                  method: "PUT",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    isAdmin: !user.isAdmin,
+                                  }),
+                                }
+                              );
+                              if (response.ok) {
+                                fetchUsers();
+                              }
+                            } catch (error) {
+                              console.error(
+                                "Error updating admin status:",
+                                error
+                              );
+                            }
+                          }}
+                          className={`px-2 py-1 text-xs rounded ${
+                            user.isAdmin
+                              ? "bg-red-100 text-red-700 hover:bg-red-200"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                          title={user.isAdmin ? "Remove admin" : "Make admin"}
+                        >
+                          {user.isAdmin ? "Remove Admin" : "Make Admin"}
+                        </button>
+
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(
+                                `/api/admin/users/${user.id}`,
+                                {
+                                  method: "PUT",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    isScorekeeper: !user.isScorekeeper,
+                                  }),
+                                }
+                              );
+                              if (response.ok) {
+                                fetchUsers();
+                              }
+                            } catch (error) {
+                              console.error(
+                                "Error updating scorekeeper status:",
+                                error
+                              );
+                            }
+                          }}
+                          className={`px-2 py-1 text-xs rounded ${
+                            user.isScorekeeper
+                              ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                          title={
+                            user.isScorekeeper
+                              ? "Remove scorekeeper"
+                              : "Make scorekeeper"
+                          }
+                        >
+                          {user.isScorekeeper
+                            ? "Remove Scorekeeper"
+                            : "Make Scorekeeper"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

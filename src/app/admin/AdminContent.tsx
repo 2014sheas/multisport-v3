@@ -56,6 +56,7 @@ export default function AdminContent({
     { name: "Teams", href: "/admin/teams", icon: Trophy },
     { name: "Events", href: "/admin/events", icon: Calendar },
     { name: "Schedule", href: "/admin/schedule", icon: Calendar },
+    { name: "Scorekeeper", href: "/scorekeeper", icon: Trophy },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
@@ -121,13 +122,6 @@ export default function AdminContent({
               >
                 <Menu className="h-6 w-6" />
               </button>
-
-              {/* Logo/Title */}
-              <div className="flex-shrink-0 flex items-center ml-4 lg:ml-0">
-                <h1 className="text-xl font-bold text-gray-900">
-                  Admin Dashboard
-                </h1>
-              </div>
             </div>
 
             {/* Desktop navigation */}
