@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET - Fetch team data for management (captain/admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { abbreviation: string } }
+  { params }: { params: Promise<{ abbreviation: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { abbreviation } = params;
+    const { abbreviation } = await params;
     const decodedAbbreviation = decodeURIComponent(abbreviation);
 
     // Get team with captain info
@@ -72,7 +72,7 @@ export async function GET(
 // PUT - Update team information (captain/admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { abbreviation: string } }
+  { params }: { params: Promise<{ abbreviation: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -80,7 +80,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { abbreviation } = params;
+    const { abbreviation } = await params;
     const decodedAbbreviation = decodeURIComponent(abbreviation);
 
     // Get team with captain info
