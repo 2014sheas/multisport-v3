@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Player, Event, Team } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -50,7 +50,7 @@ async function main() {
       { name: "Rachel Green", eloRating: 4890, experience: 3, wins: 24 },
     ];
 
-    const createdPlayers = [];
+    const createdPlayers: Player[] = [];
     for (const playerData of players) {
       const existingPlayer = await prisma.player.findFirst({
         where: { name: playerData.name },
@@ -276,7 +276,7 @@ async function main() {
       },
     ];
 
-    const createdEvents = [];
+    const createdEvents: Event[] = [];
     for (const eventData of olympicEvents) {
       const existingEvent = await prisma.event.findFirst({
         where: { name: eventData.name },
@@ -328,7 +328,7 @@ async function main() {
       },
     ];
 
-    const createdTeams = [];
+    const createdTeams: Team[] = [];
     for (const teamData of teams) {
       // Check if team already exists
       const existingTeam = await prisma.team.findFirst({

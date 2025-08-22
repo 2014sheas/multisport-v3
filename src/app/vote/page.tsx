@@ -122,7 +122,6 @@ export default function VotePage() {
       const data = await response.json();
 
       if (response.ok && data.players) {
-        setCurrentPlayers(data.players);
         setDisplayPlayers(data.players);
         // Pre-fetch next set
         await preFetchNextVoteSet(data.players.map((p: Player) => p.id));
@@ -169,7 +168,7 @@ export default function VotePage() {
 
   const transitionToNextPlayers = async () => {
     if (nextPlayers.length === 3) {
-      setCurrentPlayers(nextPlayers);
+
       setDisplayPlayers(nextPlayers);
       setVoteSelections({ keep: null, trade: null, cut: null });
       setVoteMessage("");
