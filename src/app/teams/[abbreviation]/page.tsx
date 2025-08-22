@@ -36,6 +36,7 @@ interface Player {
   rank: number;
   isCaptain: boolean;
   experience?: number;
+  profilePicture?: string | null;
 }
 
 export default function TeamPage({
@@ -266,10 +267,18 @@ export default function TeamPage({
                   <div className="flex items-center space-x-4">
                     {/* Player Info */}
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-xs sm:text-sm font-bold text-blue-600">
-                          {player.name.charAt(0).toUpperCase()}
-                        </span>
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
+                        {player.profilePicture ? (
+                          <img
+                            src={player.profilePicture}
+                            alt={player.name}
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs sm:text-sm font-bold text-blue-600">
+                            {player.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center space-x-2">

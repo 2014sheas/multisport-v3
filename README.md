@@ -10,6 +10,7 @@ A family/friends Multisport Games tracking system with Keep-Trade-Cut voting and
 - **Elo Rating System**: KeepTradeCut-style ranking based on votes
 - **Players**: Real-time player rankings with rating history
 - **Admin User Management**: View users and link accounts to players
+- **User Profile Management**: Users can update their years of experience, years won, and profile picture
 - **Event Countdown**: Homepage with countdown to event time
 - **Basic Events List**: Simple event management
 - **Event Types**: Support for Tournament, Scored, and Combined Team events
@@ -140,6 +141,11 @@ The Google sign-in button will appear on the sign-in page once configured.
 - `GET /api/event-time` - Get event countdown time
 - `GET /api/teams` - Get team assignments
 
+### User Profile
+
+- `GET /api/profile/player` - Get current user's linked player data
+- `PUT /api/profile/update` - Update user's profile (experience, profile picture)
+
 ### Admin
 
 - `GET /api/admin/users` - Get all users
@@ -157,6 +163,10 @@ The Google sign-in button will appear on the sign-in page once configured.
 - `/rankings` - Players with voting modal
 - `/events` - Events list
 - `/teams` - Team assignments
+
+### User
+
+- `/profile` - User profile management (experience, profile picture)
 
 ### Admin
 

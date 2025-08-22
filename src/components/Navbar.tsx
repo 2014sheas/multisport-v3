@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { LogIn, LogOut, Settings, Menu, X } from "lucide-react";
+import { LogIn, LogOut, Settings, Menu, X, User } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -22,11 +22,6 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">
-                <Link href="/">Multisport Games</Link>
-              </h1>
-            </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               <Link
                 href="/"
@@ -74,9 +69,31 @@ export default function Navbar() {
               <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
             ) : session ? (
               <div className="hidden sm:flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
-                  Hello, {session.user?.name}
-                </span>
+                <div className="flex items-center space-x-3">
+                  {session.user?.image ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || "User"}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
+                      <span className="text-sm font-medium text-gray-700">
+                        {session.user?.name?.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <span className="text-sm text-gray-700">
+                    Hello, {session.user?.name}
+                  </span>
+                </div>
+                <Link
+                  href="/profile"
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <User className="w-4 h-4 mr-1" />
+                  Profile
+                </Link>
                 {(session.user as any)?.isAdmin && (
                   <Link
                     href="/admin/users"
@@ -88,10 +105,10 @@ export default function Navbar() {
                 )}
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                  className="inline-flex items-center justify-center p-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                  title="Sign Out"
                 >
-                  <LogOut className="w-4 h-4 mr-1" />
-                  Sign Out
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
@@ -183,11 +200,19 @@ export default function Navbar() {
             <div className="pt-4 pb-3 border-t border-gray-200">
               <div className="flex items-center px-4">
                 <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                    <span className="text-sm font-medium text-gray-700">
-                      {session.user?.name?.charAt(0)}
-                    </span>
-                  </div>
+                  {session.user?.image ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || "User"}
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                      <span className="text-sm font-medium text-gray-700">
+                        {session.user?.name?.charAt(0)}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="ml-3">
                   <div className="text-base font-medium text-gray-800">
@@ -196,6 +221,14 @@ export default function Navbar() {
                 </div>
               </div>
               <div className="mt-3 space-y-1">
+                <Link
+                  href="/profile"
+                  className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  onClick={closeMobileMenu}
+                >
+                  <User className="w-4 h-4 inline mr-2" />
+                  Profile
+                </Link>
                 {(session.user as any)?.isAdmin && (
                   <Link
                     href="/admin/users"

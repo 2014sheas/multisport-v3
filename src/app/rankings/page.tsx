@@ -21,6 +21,7 @@ interface Player {
   experience: number;
   rank: number;
   trend: number;
+  profilePicture?: string | null;
   captainedTeams: Array<{
     id: string;
     name: string;
@@ -327,10 +328,18 @@ export default function RankingsPage() {
 
                     <div className="flex-1 min-w-0 mr-4">
                       <div className="flex items-center">
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 hidden sm:flex">
-                          <span className="text-xs font-bold text-blue-600">
-                            {player.name.charAt(0).toUpperCase()}
-                          </span>
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 hidden sm:flex overflow-hidden">
+                          {player.profilePicture ? (
+                            <img
+                              src={player.profilePicture}
+                              alt={player.name}
+                              className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-blue-600">
+                              {player.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center min-w-0 flex-1">
                           <Link

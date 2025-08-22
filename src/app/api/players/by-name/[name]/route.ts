@@ -94,6 +94,16 @@ export async function GET(
     const playerOverallRating =
       playersWithOverallRatings.find((p) => p.id === player.id)?.rating || 5000;
 
+    // Get profile picture from linked user account
+    const userWithProfilePicture = await prisma.user.findFirst({
+      where: {
+        playerId: player.id,
+      },
+      select: {
+        image: true,
+      },
+    });
+
     // Format the response
     const formattedPlayer = {
       id: player.id,
@@ -102,6 +112,7 @@ export async function GET(
       wins: player.wins || 0,
       eloRating: playerOverallRating, // Use calculated overall rating
       globalRank: globalRank,
+      profilePicture: userWithProfilePicture?.image || null,
       team: player.teamMembers.length > 0 ? player.teamMembers[0].team : null,
       isCaptain: !!isCaptain,
     };

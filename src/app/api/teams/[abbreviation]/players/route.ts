@@ -113,17 +113,38 @@ export async function GET(
         },
       });
 
+      // Fetch profile pictures for all players
+      const playerIds = processedPlayers.map((player) => player.id);
+      const userProfilePictures = await prisma.user.findMany({
+        where: {
+          playerId: { in: playerIds },
+        },
+        select: {
+          playerId: true,
+          image: true,
+        },
+      });
+
+      // Create a map for quick lookup
+      const profilePictureMap = new Map<string, string | null>();
+      userProfilePictures.forEach((user) => {
+        if (user.playerId) {
+          profilePictureMap.set(user.playerId, user.image);
+        }
+      });
+
       // Create a map of player ID to global event rank
       const globalEventRankMap = new Map<string, number>();
       globalEventRankings.forEach((rating, index) => {
         globalEventRankMap.set(rating.playerId, index + 1);
       });
 
-      // Add global event rank and captain status
+      // Add global event rank, captain status, and profile pictures
       players = processedPlayers.map((player) => ({
         ...player,
         rank: globalEventRankMap.get(player.id) || 0,
         isCaptain: player.id === team.captainId,
+        profilePicture: profilePictureMap.get(player.id) || null,
       }));
     } else {
       // Get overall rankings for the team - calculate same way as rankings page
@@ -218,6 +239,26 @@ export async function GET(
         },
       });
 
+      // Fetch profile pictures for all players
+      const playerIds = processedPlayers.map((player) => player.id);
+      const userProfilePictures = await prisma.user.findMany({
+        where: {
+          playerId: { in: playerIds },
+        },
+        select: {
+          playerId: true,
+          image: true,
+        },
+      });
+
+      // Create a map for quick lookup
+      const profilePictureMap = new Map<string, string | null>();
+      userProfilePictures.forEach((user) => {
+        if (user.playerId) {
+          profilePictureMap.set(user.playerId, user.image);
+        }
+      });
+
       // Calculate global rankings
       const globalPlayersWithRatings = globalRankings
         .map((player) => {
@@ -244,11 +285,12 @@ export async function GET(
         globalRankMap.set(player.id, index + 1);
       });
 
-      // Add global rank and captain status
+      // Add global rank, captain status, and profile pictures
       players = processedPlayers.map((player) => ({
         ...player,
         rank: globalRankMap.get(player.id) || 0,
         isCaptain: player.id === team.captainId,
+        profilePicture: profilePictureMap.get(player.id) || null,
       }));
     }
 

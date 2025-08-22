@@ -28,6 +28,7 @@ interface Player {
   wins: number;
   eloRating: number;
   globalRank?: number;
+  profilePicture?: string | null;
   team: {
     id: string;
     name: string;
@@ -232,10 +233,18 @@ export default function PlayerPage({
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="flex items-start justify-between mb-4 sm:mb-6">
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl sm:text-3xl font-bold text-blue-600">
-                  {player.name.charAt(0).toUpperCase()}
-                </span>
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
+                {player.profilePicture ? (
+                  <img
+                    src={player.profilePicture}
+                    alt={player.name}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl sm:text-3xl font-bold text-blue-600">
+                    {player.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">

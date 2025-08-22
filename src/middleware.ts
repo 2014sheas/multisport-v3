@@ -7,6 +7,7 @@ export default withAuth(
     const isAdmin = token?.isAdmin;
     const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
     const isAuthRoute = req.nextUrl.pathname.startsWith("/auth");
+    const isProfileRoute = req.nextUrl.pathname.startsWith("/profile");
 
     // If user is authenticated and trying to access auth pages, redirect to home
     if (isAuthRoute && token) {
@@ -23,6 +24,11 @@ export default withAuth(
       return NextResponse.redirect(new URL("/auth/signin", req.url));
     }
 
+    // If trying to access profile routes without authentication
+    if (isProfileRoute && !token) {
+      return NextResponse.redirect(new URL("/auth/signin", req.url));
+    }
+
     return NextResponse.next();
   },
   {
@@ -30,6 +36,7 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
         const isAuthRoute = req.nextUrl.pathname.startsWith("/auth");
+        const isProfileRoute = req.nextUrl.pathname.startsWith("/profile");
 
         // For auth routes, we want to allow access even without token
         // (the middleware will handle redirecting authenticated users)
@@ -40,6 +47,11 @@ export default withAuth(
         // For admin routes, we need both authentication and admin status
         if (isAdminRoute) {
           return !!token && token.isAdmin === true;
+        }
+
+        // For profile routes, we need authentication
+        if (isProfileRoute) {
+          return !!token;
         }
 
         // For all other routes (rankings, events, teams, etc.), allow public access
@@ -53,10 +65,7 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
-    "/auth/:path*",
-    // Removed the following routes from requiring authentication:
-    // "/rankings/:path*",
-    // "/events/:path*",
-    // "/teams/:path*",
+    "/profile/:path*",
+    "/api/profile/:path*",
   ],
 };

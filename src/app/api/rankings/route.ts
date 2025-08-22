@@ -97,6 +97,26 @@ export async function GET(request: NextRequest) {
         ORDER BY "avg_event_rating" DESC, "eloRating" DESC
       `;
 
+      // Fetch profile pictures for all players
+      const playerIds = rankingsData.map((player) => player.id);
+      const userProfilePictures = await prisma.user.findMany({
+        where: {
+          playerId: { in: playerIds },
+        },
+        select: {
+          playerId: true,
+          image: true,
+        },
+      });
+
+      // Create a map for quick lookup
+      const profilePictureMap = new Map<string, string | null>();
+      userProfilePictures.forEach((user) => {
+        if (user.playerId) {
+          profilePictureMap.set(user.playerId, user.image);
+        }
+      });
+
       // Process the data into the expected format
       const players = rankingsData.map(
         (player: MaterializedViewPlayer, index: number) => ({
@@ -106,6 +126,7 @@ export async function GET(request: NextRequest) {
           experience: Number(player.experience || 0),
           rank: index + 1,
           trend: 0, // Materialized view doesn't include trend, would need separate calculation
+          profilePicture: profilePictureMap.get(player.id) || null,
           captainedTeams: player.is_captain
             ? [{ id: player.team_id, name: player.team_name }]
             : [],
@@ -171,44 +192,58 @@ export async function GET(request: NextRequest) {
       const playerIds = eventRatings.map((er) => er.playerId);
 
       // Batch fetch all related data
-      const [eloHistoryData, captainData, teamMembershipData] =
-        await Promise.all([
-          // Fetch all Elo history for these players in one query
-          prisma.eloHistory.findMany({
-            where: {
-              playerId: { in: playerIds },
-              eventId: eventId,
-              timestamp: { gte: twentyFourHoursAgo },
-            },
-            select: {
-              playerId: true,
-              oldRating: true,
-              newRating: true,
-              timestamp: true,
-            },
-          }),
-          // Fetch all captain data in one query
-          prisma.team.findMany({
-            where: {
-              captainId: { in: playerIds },
-            },
-            select: {
-              id: true,
-              name: true,
-              captainId: true,
-            },
-          }),
-          // Fetch all team memberships in one query
-          prisma.teamMember.findMany({
-            where: {
-              playerId: { in: playerIds },
-            },
-            select: {
-              playerId: true,
-              teamId: true,
-            },
-          }),
-        ]);
+      const [
+        eloHistoryData,
+        captainData,
+        teamMembershipData,
+        userProfilePictures,
+      ] = await Promise.all([
+        // Fetch all Elo history for these players in one query
+        prisma.eloHistory.findMany({
+          where: {
+            playerId: { in: playerIds },
+            eventId: eventId,
+            timestamp: { gte: twentyFourHoursAgo },
+          },
+          select: {
+            playerId: true,
+            oldRating: true,
+            newRating: true,
+            timestamp: true,
+          },
+        }),
+        // Fetch all captain data in one query
+        prisma.team.findMany({
+          where: {
+            captainId: { in: playerIds },
+          },
+          select: {
+            id: true,
+            name: true,
+            captainId: true,
+          },
+        }),
+        // Fetch all team memberships in one query
+        prisma.teamMember.findMany({
+          where: {
+            playerId: { in: playerIds },
+          },
+          select: {
+            playerId: true,
+            teamId: true,
+          },
+        }),
+        // Fetch profile pictures for all players
+        prisma.user.findMany({
+          where: {
+            playerId: { in: playerIds },
+          },
+          select: {
+            playerId: true,
+            image: true,
+          },
+        }),
+      ]);
 
       // Fetch team data separately since it depends on teamMembershipData
       const teamIds = teamMembershipData.map(
@@ -250,6 +285,14 @@ export async function GET(request: NextRequest) {
       const teamMap = new Map<string, TeamData>();
       teamData.forEach((team: TeamData) => {
         teamMap.set(team.id, team);
+      });
+
+      // Create profile picture lookup map
+      const profilePictureMap = new Map<string, string | null>();
+      userProfilePictures.forEach((user) => {
+        if (user.playerId) {
+          profilePictureMap.set(user.playerId, user.image);
+        }
       });
 
       // Process players with pre-fetched data
@@ -299,6 +342,7 @@ export async function GET(request: NextRequest) {
           experience: eventRating.player.experience || 0,
           rank: currentIndex + 1,
           trend: Math.round(trend),
+          profilePicture: profilePictureMap.get(playerId) || null,
           captainedTeams,
           team: teamInfo,
           eventId: eventRating.event.id,
@@ -349,43 +393,57 @@ export async function GET(request: NextRequest) {
       const playerIds = playersWithAverages.map((p) => p.id);
 
       // Batch fetch all related data
-      const [eloHistoryData, captainData, teamMembershipData] =
-        await Promise.all([
-          // Fetch all Elo history for these players in one query
-          prisma.eloHistory.findMany({
-            where: {
-              playerId: { in: playerIds },
-              timestamp: { gte: twentyFourHoursAgo },
-            },
-            select: {
-              playerId: true,
-              oldRating: true,
-              newRating: true,
-              timestamp: true,
-            },
-          }),
-          // Fetch all captain data in one query
-          prisma.team.findMany({
-            where: {
-              captainId: { in: playerIds },
-            },
-            select: {
-              id: true,
-              name: true,
-              captainId: true,
-            },
-          }),
-          // Fetch all team memberships in one query
-          prisma.teamMember.findMany({
-            where: {
-              playerId: { in: playerIds },
-            },
-            select: {
-              playerId: true,
-              teamId: true,
-            },
-          }),
-        ]);
+      const [
+        eloHistoryData,
+        captainData,
+        teamMembershipData,
+        userProfilePictures,
+      ] = await Promise.all([
+        // Fetch all Elo history for these players in one query
+        prisma.eloHistory.findMany({
+          where: {
+            playerId: { in: playerIds },
+            timestamp: { gte: twentyFourHoursAgo },
+          },
+          select: {
+            playerId: true,
+            oldRating: true,
+            newRating: true,
+            timestamp: true,
+          },
+        }),
+        // Fetch all captain data in one query
+        prisma.team.findMany({
+          where: {
+            captainId: { in: playerIds },
+          },
+          select: {
+            id: true,
+            name: true,
+            captainId: true,
+          },
+        }),
+        // Fetch all team memberships in one query
+        prisma.teamMember.findMany({
+          where: {
+            playerId: { in: playerIds },
+          },
+          select: {
+            playerId: true,
+            teamId: true,
+          },
+        }),
+        // Fetch profile pictures for all players
+        prisma.user.findMany({
+          where: {
+            playerId: { in: playerIds },
+          },
+          select: {
+            playerId: true,
+            image: true,
+          },
+        }),
+      ]);
 
       // Fetch team data separately since it depends on teamMembershipData
       const teamIds = teamMembershipData.map(
@@ -427,6 +485,14 @@ export async function GET(request: NextRequest) {
       const teamMap = new Map<string, TeamData>();
       teamData.forEach((team: TeamData) => {
         teamMap.set(team.id, team);
+      });
+
+      // Create profile picture lookup map
+      const profilePictureMap = new Map<string, string | null>();
+      userProfilePictures.forEach((user) => {
+        if (user.playerId) {
+          profilePictureMap.set(user.playerId, user.image);
+        }
       });
 
       // Process players with pre-fetched data
@@ -481,6 +547,7 @@ export async function GET(request: NextRequest) {
           experience: player.experience || 0,
           rank: currentIndex + 1,
           trend: Math.round(trend),
+          profilePicture: profilePictureMap.get(playerId) || null,
           captainedTeams,
           team: teamInfo,
         };
