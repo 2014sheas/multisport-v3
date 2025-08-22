@@ -170,6 +170,8 @@ export default function PointHistoryChart({
 
   // Create projected data that starts from the last completed event
   const projectedChartDataWithOverlap = [
+    // If there are no completed events, start from the starting point (0)
+    ...(completedEvents.length === 0 ? [startingPoint] : []),
     // Add a point at the last completed event timestamp with the final completed points
     ...completedEvents.map((event, index) => {
       const dataPoint: ChartDataPoint = {

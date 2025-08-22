@@ -168,7 +168,6 @@ export default function VotePage() {
 
   const transitionToNextPlayers = async () => {
     if (nextPlayers.length === 3) {
-
       setDisplayPlayers(nextPlayers);
       setVoteSelections({ keep: null, trade: null, cut: null });
       setVoteMessage("");
