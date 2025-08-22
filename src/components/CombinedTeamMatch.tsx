@@ -468,8 +468,9 @@ export default function CombinedTeamMatch({
                       </button>
                     </div>
                     <p className="text-xs text-gray-600">
-                      Use "Update Score" to save the current score without
-                      ending the match, or "Complete Match" to finish the event.
+                      Use &quot;Update Score&quot; to save the current score
+                      without ending the match, or &quot;Complete Match&quot; to
+                      finish the event.
                     </p>
                   </div>
                 </div>

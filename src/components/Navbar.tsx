@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { LogIn, LogOut, Settings, Menu, X } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -23,47 +24,47 @@ export default function Navbar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <h1 className="text-xl font-bold text-gray-900">
-                <a href="/">Multisport Games</a>
+                <Link href="/">Multisport Games</Link>
               </h1>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <a
+              <Link
                 href="/"
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Home
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/rankings"
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Players
-              </a>
+              </Link>
 
-              <a
+              <Link
                 href="/events"
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Events
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/teams"
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Teams
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/standings"
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Standings
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/schedule"
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Schedule
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -77,13 +78,13 @@ export default function Navbar() {
                   Hello, {session.user?.name}
                 </span>
                 {(session.user as any)?.isAdmin && (
-                  <a
+                  <Link
                     href="/admin/users"
                     className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     <Settings className="w-4 h-4 mr-1" />
                     Admin
-                  </a>
+                  </Link>
                 )}
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
@@ -95,13 +96,13 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="hidden sm:flex items-center space-x-2">
-                <a
+                <Link
                   href="/auth/signin"
                   className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                   <LogIn className="w-4 h-4 mr-1" />
                   Sign In
-                </a>
+                </Link>
               </div>
             )}
 
@@ -129,48 +130,48 @@ export default function Navbar() {
       {isMobileMenuOpen && (
         <div className="sm:hidden">
           <div className="pt-2 pb-3 space-y-1 border-t border-gray-200">
-            <a
+            <Link
               href="/"
               className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300"
               onClick={closeMobileMenu}
             >
               Home
-            </a>
-            <a
+            </Link>
+            <Link
               href="/rankings"
               className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300"
               onClick={closeMobileMenu}
             >
               Players
-            </a>
-            <a
+            </Link>
+            <Link
               href="/events"
               className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300"
               onClick={closeMobileMenu}
             >
               Events
-            </a>
-            <a
+            </Link>
+            <Link
               href="/teams"
               className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300"
               onClick={closeMobileMenu}
             >
               Teams
-            </a>
-            <a
+            </Link>
+            <Link
               href="/standings"
               className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300"
               onClick={closeMobileMenu}
             >
               Standings
-            </a>
-            <a
+            </Link>
+            <Link
               href="/schedule"
               className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300"
               onClick={closeMobileMenu}
             >
               Schedule
-            </a>
+            </Link>
           </div>
 
           {/* Mobile auth section */}
@@ -196,14 +197,14 @@ export default function Navbar() {
               </div>
               <div className="mt-3 space-y-1">
                 {(session.user as any)?.isAdmin && (
-                  <a
+                  <Link
                     href="/admin/users"
                     className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                     onClick={closeMobileMenu}
                   >
                     <Settings className="w-4 h-4 inline mr-2" />
                     Admin
-                  </a>
+                  </Link>
                 )}
                 <button
                   onClick={() => {

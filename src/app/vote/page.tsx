@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Users,
   Calendar,
-  TrendingUp,
   ArrowLeft,
 } from "lucide-react";
 
@@ -77,7 +76,7 @@ const getTeamColor = (
 export default function VotePage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [currentPlayers, setCurrentPlayers] = useState<Player[]>([]);
+
   const [nextPlayers, setNextPlayers] = useState<Player[]>([]);
   const [voteSelections, setVoteSelections] = useState<VoteSelections>({
     keep: null,

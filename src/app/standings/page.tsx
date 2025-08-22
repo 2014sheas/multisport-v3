@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Trophy, Medal, Target } from "lucide-react";
 import PointHistoryChart from "@/components/PointHistoryChart";
+import PerformanceMonitor from "@/components/PerformanceMonitor";
 
 interface TeamStanding {
   teamId: string;
@@ -53,6 +54,62 @@ export default function StandingsPage() {
   const [currentProjectedEventIndex, setCurrentProjectedEventIndex] =
     useState(0);
 
+  // Memoize expensive calculations
+  const completedEvents = useMemo(() => {
+    return events.filter((event) => event.status === "COMPLETED");
+  }, [events]);
+
+  const upcomingEvents = useMemo(() => {
+    return events.filter((event) => event.status === "UPCOMING");
+  }, [events]);
+
+  const sortedStandings = useMemo(() => {
+    return [...standings].sort((a, b) => {
+      let aValue: number;
+      let bValue: number;
+
+      switch (sortBy) {
+        case "earnedPoints":
+          aValue = a.earnedPoints;
+          bValue = b.earnedPoints;
+          break;
+        case "projectedTotal":
+          aValue = a.earnedPoints + a.projectedPoints;
+          bValue = b.earnedPoints + b.projectedPoints;
+          break;
+        case "firstPlace":
+          aValue = a.firstPlaceFinishes;
+          bValue = b.firstPlaceFinishes;
+          break;
+        case "secondPlace":
+          aValue = a.secondPlaceFinishes;
+          bValue = b.secondPlaceFinishes;
+          break;
+        default:
+          aValue = a.earnedPoints;
+          bValue = b.earnedPoints;
+      }
+
+      if (sortDirection === "desc") {
+        return bValue - aValue;
+      } else {
+        return aValue - bValue;
+      }
+    });
+  }, [standings, sortBy, sortDirection]);
+
+  const handleSort = useCallback(
+    (column: typeof sortBy) => {
+      if (sortBy === column) {
+        setSortDirection(sortDirection === "desc" ? "asc" : "desc");
+      } else {
+        setSortBy(column);
+        setSortDirection("desc");
+      }
+    },
+    [sortBy, sortDirection]
+  );
+
   useEffect(() => {
     const fetchStandings = async () => {
       try {
@@ -94,55 +151,6 @@ export default function StandingsPage() {
       </div>
     );
   }
-
-  const completedEvents = events.filter(
-    (event) => event.status === "COMPLETED"
-  );
-  const upcomingEvents = events.filter((event) => event.status === "UPCOMING");
-
-  const handleSort = (column: typeof sortBy) => {
-    if (sortBy === column) {
-      setSortDirection(sortDirection === "desc" ? "asc" : "desc");
-    } else {
-      setSortBy(column);
-      setSortDirection("desc");
-    }
-  };
-
-  const getSortedStandings = () => {
-    return [...standings].sort((a, b) => {
-      let aValue: number;
-      let bValue: number;
-
-      switch (sortBy) {
-        case "earnedPoints":
-          aValue = a.earnedPoints;
-          bValue = b.earnedPoints;
-          break;
-        case "projectedTotal":
-          aValue = a.earnedPoints + a.projectedPoints;
-          bValue = b.earnedPoints + b.projectedPoints;
-          break;
-        case "firstPlace":
-          aValue = a.firstPlaceFinishes;
-          bValue = b.firstPlaceFinishes;
-          break;
-        case "secondPlace":
-          aValue = a.secondPlaceFinishes;
-          bValue = b.secondPlaceFinishes;
-          break;
-        default:
-          aValue = a.earnedPoints;
-          bValue = b.earnedPoints;
-      }
-
-      if (sortDirection === "desc") {
-        return bValue - aValue;
-      } else {
-        return aValue - bValue;
-      }
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -243,7 +251,7 @@ export default function StandingsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getSortedStandings().map((team) => (
+                {sortedStandings.map((team) => (
                   <tr key={team.teamId} className="hover:bg-gray-50">
                     <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -550,6 +558,8 @@ export default function StandingsPage() {
           )}
         </div>
       </div>
+
+      <PerformanceMonitor pageName="Standings" />
     </div>
   );
 }

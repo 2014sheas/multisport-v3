@@ -23,7 +23,15 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ events });
+    const response = NextResponse.json({ events });
+
+    // Cache for 30 seconds to reduce database load
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=30, stale-while-revalidate=60"
+    );
+
+    return response;
   } catch (error) {
     console.error("Error fetching events:", error);
     return NextResponse.json(

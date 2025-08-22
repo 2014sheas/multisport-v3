@@ -98,7 +98,7 @@ model Event {
   status            EventStatus        @default(UPCOMING)
   symbol            String
   duration          Int?
-  combinedTeamData  Json? // Stores combined team information for COMBINED_TEAM events
+  combinedTeamData  Json?
   eloHistory        EloHistory[]
   eventRatings      EventRating[]
   tournamentBracket TournamentBracket?

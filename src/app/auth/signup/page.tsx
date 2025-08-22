@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 
 export default function SignUpPage() {
   const [name, setName] = useState("");
@@ -49,7 +50,10 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess(data.message || "Account created successfully! Please check your email to verify your account before signing in.");
+        setSuccess(
+          data.message ||
+            "Account created successfully! Please check your email to verify your account before signing in."
+        );
         setTimeout(() => {
           router.push("/auth/signin");
         }, 3000);
@@ -185,12 +189,12 @@ export default function SignUpPage() {
           </div>
 
           <div className="text-center">
-            <a
+            <Link
               href="/"
               className="font-medium text-gray-600 hover:text-gray-500"
             >
               ← Back to home
-            </a>
+            </Link>
           </div>
         </form>
       </div>

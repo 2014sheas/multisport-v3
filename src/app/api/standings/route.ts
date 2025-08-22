@@ -25,7 +25,31 @@ interface EventResult {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get all events
+    // Use a single optimized query to get all data at once
+    const teamsWithMembers = await prisma.team.findMany({
+      select: {
+        id: true,
+        name: true,
+        abbreviation: true,
+        color: true,
+        members: {
+          select: {
+            player: {
+              select: {
+                eventRatings: {
+                  select: {
+                    eventId: true,
+                    rating: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Get all events in one query
     const events = await prisma.event.findMany({
       select: {
         id: true,
@@ -40,24 +64,14 @@ export async function GET(request: NextRequest) {
       orderBy: { startTime: "asc" },
     });
 
-    // Type assertion for finalStandings - now stores team IDs (strings)
+    // Type assertion for finalStandings
     const typedEvents = events.map((event) => ({
       ...event,
       finalStandings: event.finalStandings as string[] | null,
     }));
 
-    // Get all teams
-    const teams = await prisma.team.findMany({
-      select: {
-        id: true,
-        name: true,
-        abbreviation: true,
-        color: true,
-      },
-    });
-
     // Initialize standings for all teams
-    const standings: TeamStanding[] = teams.map((team) => ({
+    const standings: TeamStanding[] = teamsWithMembers.map((team) => ({
       teamId: team.id,
       teamName: team.name,
       teamAbbreviation: team.abbreviation || "TBD",
@@ -73,9 +87,7 @@ export async function GET(request: NextRequest) {
     for (const event of typedEvents) {
       if (event.status === "COMPLETED" && event.finalStandings) {
         // Use actual final standings for completed events
-        // finalStandings now contains team IDs directly
         event.finalStandings.forEach((teamId, position) => {
-          // Find team by team ID
           const team = standings.find((s) => s.teamId === teamId);
           if (team) {
             const points = event.points[position] || 0;
@@ -83,11 +95,9 @@ export async function GET(request: NextRequest) {
 
             // Count finishes based on event type
             if (event.eventType === "COMBINED_TEAM") {
-              // For Combined Team events: first 2 teams get 1st place, last 2 teams get 2nd place
               if (position < 2) team.firstPlaceFinishes++;
               if (position >= 2) team.secondPlaceFinishes++;
             } else {
-              // For regular events: normal position counting
               if (position === 0) team.firstPlaceFinishes++;
               if (position === 1) team.secondPlaceFinishes++;
             }
@@ -104,35 +114,22 @@ export async function GET(request: NextRequest) {
           }
         });
       } else {
-        // Calculate projected standings for upcoming events based on current team ratings
-        const teamRatings = await prisma.eventRating.findMany({
-          where: { eventId: event.id },
-          select: {
-            playerId: true,
-            rating: true,
-          },
-        });
-
-        // Get team members and calculate average team ratings
+        // Calculate projected standings for upcoming events using pre-fetched data
         const teamAverages: {
           teamId: string;
           averageRating: number;
           memberCount: number;
         }[] = [];
 
-        for (const team of teams) {
-          const teamMembers = await prisma.teamMember.findMany({
-            where: { teamId: team.id },
-            select: { playerId: true },
-          });
-
-          if (teamMembers.length > 0) {
-            const memberRatings = teamMembers
+        for (const team of teamsWithMembers) {
+          if (team.members.length > 0) {
+            // Get event ratings for this specific event
+            const memberRatings = team.members
               .map((member) => {
-                const rating = teamRatings.find(
-                  (r) => r.playerId === member.playerId
+                const eventRating = member.player.eventRatings.find(
+                  (r) => r.eventId === event.id
                 );
-                return rating?.rating || 5000; // Default rating if no event rating
+                return eventRating?.rating || 5000; // Default rating if no event rating
               })
               .filter((rating) => rating > 0);
 
@@ -149,7 +146,7 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Sort teams by average rating (descending) and assign projected points
+        // Sort teams by average rating and assign projected points
         teamAverages
           .sort((a, b) => b.averageRating - a.averageRating)
           .slice(0, event.points.length)
@@ -173,7 +170,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Create a copy for display that's sorted by earned points (primary) then projected total (secondary)
+    // Sort standings by earned points (primary) then projected total (secondary)
     const displayStandings = [...standings].sort((a, b) => {
       if (b.earnedPoints !== a.earnedPoints) {
         return b.earnedPoints - a.earnedPoints;
@@ -185,11 +182,19 @@ export async function GET(request: NextRequest) {
       );
     });
 
-    // Also return the original standings order for finalStandings mapping
-    return NextResponse.json({
+    // Add caching headers for better performance
+    const response = NextResponse.json({
       standings: displayStandings,
       originalStandings: standings,
     });
+
+    // Cache for 30 seconds to reduce database load
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=30, stale-while-revalidate=60"
+    );
+
+    return response;
   } catch (error) {
     console.error("Error calculating standings:", error);
     return NextResponse.json(
