@@ -156,7 +156,7 @@ export default function PublicScheduleCalendar({
     });
 
     if (overlappingEvents.length === 0) {
-      return { left: "1px", right: "1px", width: "auto" };
+      return { left: "1px", right: "1px", width: "calc(100% - 2px)" };
     }
 
     // Sort overlapping events by start time
@@ -520,7 +520,7 @@ export default function PublicScheduleCalendar({
 
                         // Calculate positioning for overlapping events
                         let left = "1px";
-                        let width = "auto";
+                        let width = "calc(100% - 2px)"; // Full width minus left and right margins
 
                         if (overlappingEvents.length > 0) {
                           // Sort all overlapping events by start time

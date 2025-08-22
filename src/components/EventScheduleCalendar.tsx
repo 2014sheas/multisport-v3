@@ -346,7 +346,7 @@ export default function EventScheduleCalendar({
     });
 
     if (overlappingEvents.length === 0) {
-      return { left: 1, right: 1, width: "auto" };
+      return { left: 1, right: 1, width: "calc(100% - 2px)" };
     }
 
     // Sort overlapping events by start time
@@ -358,7 +358,7 @@ export default function EventScheduleCalendar({
     const totalOverlapping = Math.min(allOverlapping.length, 3); // Max 3 events side by side
 
     if (totalOverlapping === 1) {
-      return { left: 1, right: 1, width: "auto" };
+      return { left: 1, right: 1, width: "calc(100% - 2px)" };
     }
 
     // Calculate width and position for side-by-side display
@@ -860,7 +860,7 @@ export default function EventScheduleCalendar({
 
                         // Calculate positioning for overlapping events
                         let left = "1px";
-                        let width = "auto";
+                        let width = "calc(100% - 2px)"; // Full width minus left and right margins
 
                         if (overlappingEvents.length > 0) {
                           // Sort all overlapping events by start time
@@ -898,7 +898,8 @@ export default function EventScheduleCalendar({
                               height: `${Math.max(height, 30)}px`,
                               minHeight: "30px",
                               left,
-                              right: "1px",
+                              right:
+                                overlappingEvents.length > 0 ? "auto" : "1px",
                               width,
                             }}
                           >
