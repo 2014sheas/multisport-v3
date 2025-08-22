@@ -36,6 +36,7 @@ interface Event {
   finalStandings: string[] | null; // Now stores team IDs instead of indices
   startTime: string;
   location: string;
+  eventType: "TOURNAMENT" | "SCORED" | "COMBINED_TEAM";
 }
 
 export default function StandingsPage() {
@@ -365,14 +366,31 @@ export default function StandingsPage() {
                         // Find team by team ID instead of using index
                         const team = standings.find((s) => s.teamId === teamId);
                         if (!team) return null;
+
+                        // For Combined Team events, show 1st place for first 2 teams, 2nd place for last 2 teams
+                        let displayPosition = position + 1;
+                        let positionColor = "text-gray-500";
+
+                        if (
+                          completedEvents[currentCompletedEventIndex]
+                            .eventType === "COMBINED_TEAM"
+                        ) {
+                          // Combined team events: first 2 teams get 1st place, last 2 teams get 2nd place
+                          displayPosition = position < 2 ? 1 : 2;
+                          positionColor =
+                            position < 2 ? "text-yellow-600" : "text-gray-600";
+                        }
+
                         return (
                           <div
                             key={position}
                             className="flex items-center justify-between p-2 bg-gray-50 rounded"
                           >
                             <div className="flex items-center space-x-2">
-                              <span className="text-sm font-medium text-gray-500">
-                                #{position + 1}
+                              <span
+                                className={`text-sm font-medium ${positionColor}`}
+                              >
+                                #{displayPosition}
                               </span>
                               <div
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"

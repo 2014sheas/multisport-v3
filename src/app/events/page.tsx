@@ -9,7 +9,7 @@ interface Event {
   name: string;
   abbreviation: string;
   symbol: string;
-  eventType: "TOURNAMENT" | "SCORED";
+  eventType: "TOURNAMENT" | "SCORED" | "COMBINED_TEAM";
   status: "UPCOMING" | "IN_PROGRESS" | "COMPLETED";
   startTime: string;
   location: string;
@@ -19,8 +19,24 @@ interface Event {
   updatedAt: string;
 }
 
+const formatEventType = (eventType: string) => {
+  switch (eventType) {
+    case "COMBINED_TEAM":
+      return "Combined Team";
+    case "TOURNAMENT":
+      return "Tournament";
+    case "SCORED":
+      return "Scored";
+    default:
+      return eventType;
+  }
+};
+
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [teams, setTeams] = useState<
+    { id: string; name: string; abbreviation?: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,14 +55,27 @@ export default function EventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch("/api/events");
-      const data = await response.json();
-      // Sort events by start time (earliest first)
-      const sortedEvents = data.events.sort(
-        (a: Event, b: Event) =>
-          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-      );
-      setEvents(sortedEvents);
+      // Fetch events and teams in parallel
+      const [eventsResponse, teamsResponse] = await Promise.all([
+        fetch("/api/events"),
+        fetch("/api/teams"),
+      ]);
+
+      if (eventsResponse.ok && teamsResponse.ok) {
+        const [eventsData, teamsData] = await Promise.all([
+          eventsResponse.json(),
+          teamsResponse.json(),
+        ]);
+
+        // Sort events by start time (earliest first)
+        const sortedEvents = eventsData.events.sort(
+          (a: Event, b: Event) =>
+            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+
+        setEvents(sortedEvents);
+        setTeams(teamsData.teams || []);
+      }
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
@@ -93,6 +122,14 @@ export default function EventsPage() {
     } else {
       return `${minutes} minute${minutes > 1 ? "s" : ""}`;
     }
+  };
+
+  const getTeamDisplayName = (teamId: string) => {
+    const team = teams.find((t) => t.id === teamId);
+    if (team) {
+      return team.name;
+    }
+    return `Team ${teamId}`; // Fallback if team not found
   };
 
   if (loading) {
@@ -189,7 +226,7 @@ export default function EventsPage() {
                         : "bg-green-100 text-green-800"
                     }`}
                   >
-                    {event.eventType}
+                    {formatEventType(event.eventType)}
                   </span>
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -270,34 +307,49 @@ export default function EventsPage() {
                       Final Standings:
                     </p>
                     <div className="space-y-1">
-                      {event.finalStandings.map((teamId, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-2"
-                        >
-                          <span
-                            className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
-                              index === 0
-                                ? "bg-yellow-200 text-yellow-800"
-                                : index === 1
-                                ? "bg-gray-200 text-gray-800"
-                                : index === 2
-                                ? "bg-orange-200 text-orange-800"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
+                      {event.finalStandings.map((teamId, index) => {
+                        // For Combined Team events, show 1st place for first 2 teams, 2nd place for last 2 teams
+                        let position = index + 1;
+                        let positionColor = "bg-gray-100 text-gray-600";
+
+                        if (event.eventType === "COMBINED_TEAM") {
+                          // Combined team events: first 2 teams get 1st place, last 2 teams get 2nd place
+                          position = index < 2 ? 1 : 2;
+                          positionColor =
+                            index < 2
+                              ? "bg-yellow-200 text-yellow-800"
+                              : "bg-gray-200 text-gray-800";
+                        } else {
+                          // Regular events: use normal position coloring
+                          if (index === 0)
+                            positionColor = "bg-yellow-200 text-yellow-800";
+                          else if (index === 1)
+                            positionColor = "bg-gray-200 text-gray-800";
+                          else if (index === 2)
+                            positionColor = "bg-orange-200 text-orange-800";
+                        }
+
+                        return (
+                          <div
+                            key={index}
+                            className="flex items-center space-x-2"
                           >
-                            {index + 1}
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            Team {teamId}
-                          </span>
-                          {event.points && event.points[index] && (
-                            <span className="text-xs text-gray-500 ml-auto">
-                              {event.points[index]} pts
+                            <span
+                              className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${positionColor}`}
+                            >
+                              {position}
                             </span>
-                          )}
-                        </div>
-                      ))}
+                            <span className="text-sm text-gray-700">
+                              {getTeamDisplayName(teamId)}
+                            </span>
+                            {event.points && event.points[index] && (
+                              <span className="text-xs text-gray-500 ml-auto">
+                                {event.points[index]} pts
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

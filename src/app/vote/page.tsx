@@ -30,7 +30,7 @@ interface Event {
   name: string;
   abbreviation: string;
   symbol: string;
-  eventType: "TOURNAMENT" | "SCORED";
+  eventType: "TOURNAMENT" | "SCORED" | "COMBINED_TEAM";
   status: "UPCOMING" | "IN_PROGRESS" | "COMPLETED";
   startTime: string;
   location: string;

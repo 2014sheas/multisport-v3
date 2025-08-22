@@ -21,7 +21,7 @@ CREATE TABLE "public"."users" (
 CREATE TABLE "public"."players" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "eloRating" INTEGER NOT NULL DEFAULT 1200,
+    "eloRating" INTEGER NOT NULL DEFAULT 5000,
     "gamesPlayed" INTEGER NOT NULL DEFAULT 0,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -35,7 +35,7 @@ CREATE TABLE "public"."teams" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "captainId" TEXT NOT NULL,
-    "eloRating" INTEGER NOT NULL DEFAULT 1200,
+    "eloRating" INTEGER NOT NULL DEFAULT 5000,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

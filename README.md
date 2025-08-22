@@ -12,6 +12,7 @@ A family/friends Multisport Games tracking system with Keep-Trade-Cut voting and
 - **Admin User Management**: View users and link accounts to players
 - **Event Countdown**: Homepage with countdown to event time
 - **Basic Events List**: Simple event management
+- **Event Types**: Support for Tournament, Scored, and Combined Team events
 
 ### Coming Soon
 
@@ -84,6 +85,36 @@ The Google sign-in button will appear on the sign-in page once configured.
 2. Add participants manually
 3. Mark users as participants/captains as needed
 4. Set event time at `/admin/settings`
+
+## Event Types
+
+### Tournament Events
+
+- **Description**: Traditional bracket-style tournaments with seeding and elimination rounds
+- **Features**: Team seeding, bracket generation, match tracking, winner determination
+- **Use Case**: Competitive tournaments with multiple rounds
+
+### Scored Events
+
+- **Description**: Point-based events where teams compete for highest scores
+- **Features**: Point allocation, final standings, team rankings
+- **Use Case**: Events where performance is measured by points rather than elimination
+
+### Combined Team Events
+
+- **Description**: Unique format where 4 teams are randomly combined into 2 super-teams
+- **Features**:
+  - Random team combination generation
+  - Single match between combined teams
+  - Point distribution based on final standings
+  - Visual team combination display
+- **How it works**:
+  1. 4 teams participate in the event
+  2. Teams are randomly shuffled and combined into 2 groups
+  3. Each combined team plays as a single unit
+  4. Single match determines the winner
+  5. Points are awarded based on final standings
+- **Use Case**: Fun, unpredictable events where team dynamics change completely
 
 ## Database Schema
 

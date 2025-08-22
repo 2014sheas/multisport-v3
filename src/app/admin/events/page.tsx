@@ -9,7 +9,7 @@ interface Event {
   name: string;
   abbreviation: string;
   symbol: string;
-  eventType: "TOURNAMENT" | "SCORED";
+  eventType: "TOURNAMENT" | "SCORED" | "COMBINED_TEAM";
   status: "UPCOMING" | "IN_PROGRESS" | "COMPLETED";
   startTime: string;
   duration: number | null;
@@ -41,7 +41,7 @@ export default function AdminEventsPage() {
     name: "",
     abbreviation: "",
     symbol: "",
-    eventType: "TOURNAMENT" as "TOURNAMENT" | "SCORED",
+    eventType: "TOURNAMENT" as "TOURNAMENT" | "SCORED" | "COMBINED_TEAM",
     status: "UPCOMING" as "UPCOMING" | "IN_PROGRESS" | "COMPLETED",
     startTime: "",
     duration: 60,
@@ -53,7 +53,7 @@ export default function AdminEventsPage() {
     name: "",
     abbreviation: "",
     symbol: "",
-    eventType: "TOURNAMENT" as "TOURNAMENT" | "SCORED",
+    eventType: "TOURNAMENT" as "TOURNAMENT" | "SCORED" | "COMBINED_TEAM",
     status: "UPCOMING" as "UPCOMING" | "IN_PROGRESS" | "COMPLETED",
     startTime: "",
     duration: 60,
@@ -232,6 +232,19 @@ export default function AdminEventsPage() {
     }
   };
 
+  const formatEventType = (eventType: string) => {
+    switch (eventType) {
+      case "COMBINED_TEAM":
+        return "Combined Team";
+      case "TOURNAMENT":
+        return "Tournament";
+      case "SCORED":
+        return "Scored";
+      default:
+        return eventType;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -296,7 +309,7 @@ export default function AdminEventsPage() {
                             : "bg-green-100 text-green-800"
                         }`}
                       >
-                        {event.eventType}
+                        {formatEventType(event.eventType)}
                       </span>
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -573,13 +586,15 @@ export default function AdminEventsPage() {
                             ...formData,
                             eventType: e.target.value as
                               | "TOURNAMENT"
-                              | "SCORED",
+                              | "SCORED"
+                              | "COMBINED_TEAM",
                           })
                         }
                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="TOURNAMENT">Tournament</option>
                         <option value="SCORED">Scored</option>
+                        <option value="COMBINED_TEAM">Combined Team</option>
                       </select>
                     </div>
                     <div>
@@ -797,13 +812,15 @@ export default function AdminEventsPage() {
                             ...editFormData,
                             eventType: e.target.value as
                               | "TOURNAMENT"
-                              | "SCORED",
+                              | "SCORED"
+                              | "COMBINED_TEAM",
                           })
                         }
                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="TOURNAMENT">Tournament</option>
                         <option value="SCORED">Scored</option>
+                        <option value="COMBINED_TEAM">Combined Team</option>
                       </select>
                     </div>
                     <div>

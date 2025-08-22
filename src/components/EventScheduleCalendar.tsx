@@ -23,6 +23,19 @@ const DAYS = [
   { date: "2025-08-24", label: "Sunday, Aug 24" },
 ];
 
+const formatEventType = (eventType: string) => {
+  switch (eventType) {
+    case "COMBINED_TEAM":
+      return "Combined Team";
+    case "TOURNAMENT":
+      return "Tournament";
+    case "SCORED":
+      return "Scored";
+    default:
+      return eventType;
+  }
+};
+
 export default function EventScheduleCalendar({
   events,
   onScheduleUpdate,
@@ -423,7 +436,9 @@ export default function EventScheduleCalendar({
               className="bg-gray-100 p-4 rounded-lg border-2 border-dashed border-gray-300 cursor-move hover:border-gray-400 transition-all duration-200 hover:shadow-md active:scale-95 transform-gpu"
             >
               <div className="font-medium text-gray-900">{event.name}</div>
-              <div className="text-sm text-gray-600">{event.eventType}</div>
+              <div className="text-sm text-gray-600">
+                {formatEventType(event.eventType)}
+              </div>
               <div className="text-xs text-gray-500 mt-1">Drag to schedule</div>
             </div>
           ))}

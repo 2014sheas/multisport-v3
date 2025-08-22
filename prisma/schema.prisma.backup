@@ -53,18 +53,17 @@ model Player {
 }
 
 model Team {
-  id                     String                  @id @default(cuid())
-  name                   String
-  captainId              String?
-  eloRating              Int                     @default(5000)
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  color                  String                  @default("#3B82F6")
-  abbreviation           String?
-  draftPicks             DraftPick[]
-  members                TeamMember[]
-  captain                Player?                 @relation("TeamCaptain", fields: [captainId], references: [id])
-  tournamentParticipants TournamentParticipant[]
+  id           String       @id @default(cuid())
+  name         String
+  captainId    String?
+  eloRating    Int          @default(5000)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  color        String       @default("#3B82F6")
+  abbreviation String?
+  draftPicks   DraftPick[]
+  members      TeamMember[]
+  captain      Player?      @relation("TeamCaptain", fields: [captainId], references: [id])
 
   @@index([captainId, id], map: "teams_captain_id_idx")
   @@map("teams")
@@ -85,24 +84,21 @@ model TeamMember {
 }
 
 model Event {
-  id                String             @id @default(cuid())
-  name              String
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  abbreviation      String
-  eventType         EventType
-  finalStandings    Json?
-  location          String?
-  points            Int[]
-  startTime         DateTime?
-  status            EventStatus        @default(UPCOMING)
-  symbol            String
-  duration          Int?
-  combinedTeamData  Json? // Stores combined team information for COMBINED_TEAM events
-  eloHistory        EloHistory[]
-  eventRatings      EventRating[]
-  tournamentBracket TournamentBracket?
-  votes             Vote[]
+  id             String        @id @default(cuid())
+  name           String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  abbreviation   String
+  eventType      EventType
+  finalStandings Json?
+  location       String?
+  points         Int[]
+  startTime      DateTime?
+  status         EventStatus   @default(UPCOMING)
+  symbol         String
+  eloHistory     EloHistory[]
+  eventRatings   EventRating[]
+  votes          Vote[]
 
   @@map("events")
 }
@@ -235,98 +231,13 @@ model EventRating {
   @@map("event_ratings")
 }
 
-model TournamentBracket {
-  id           String                  @id @default(cuid())
-  eventId      String                  @unique
-  status       TournamentStatus        @default(SEEDING)
-  winnerId     String?
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
-  event        Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  winner       TournamentParticipant?  @relation("TournamentWinner", fields: [winnerId], references: [id])
-  matches      TournamentMatch[]
-  participants TournamentParticipant[]
-
-  @@map("tournament_brackets")
-}
-
-model TournamentParticipant {
-  id                  String              @id @default(cuid())
-  tournamentBracketId String
-  teamId              String
-  seed                Int?
-  isEliminated        Boolean             @default(false)
-  eliminationRound    Int?
-  finalPosition       Int?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  wonTournaments      TournamentBracket[] @relation("TournamentWinner")
-  matchesAsTeam1      TournamentMatch[]   @relation("Team1")
-  matchesAsTeam2      TournamentMatch[]   @relation("Team2")
-  team                Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  tournamentBracket   TournamentBracket   @relation(fields: [tournamentBracketId], references: [id], onDelete: Cascade)
-
-  @@unique([tournamentBracketId, teamId])
-  @@index([tournamentBracketId, seed])
-  @@map("tournament_participants")
-}
-
-model TournamentMatch {
-  id                  String                 @id @default(cuid())
-  tournamentBracketId String
-  round               Int
-  matchNumber         Int
-  isWinnersBracket    Boolean
-  winnerId            String?
-  score               Json?
-  status              MatchStatus            @default(SCHEDULED)
-  scheduledTime       DateTime?
-  location            String?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
-  team1Id             String?
-  team2Id             String?
-  team1FromMatchId    String?
-  team1IsWinner       Boolean?
-  team2FromMatchId    String?
-  team2IsWinner       Boolean?
-  team1FromMatch      TournamentMatch?       @relation("Team1FromMatch", fields: [team1FromMatchId], references: [id])
-  feedsIntoMatches    TournamentMatch[]      @relation("Team1FromMatch")
-  team1               TournamentParticipant? @relation("Team1", fields: [team1Id], references: [id], onDelete: Cascade)
-  team2FromMatch      TournamentMatch?       @relation("Team2FromMatch", fields: [team2FromMatchId], references: [id])
-  feedsIntoMatches2   TournamentMatch[]      @relation("Team2FromMatch")
-  team2               TournamentParticipant? @relation("Team2", fields: [team2Id], references: [id], onDelete: Cascade)
-  tournamentBracket   TournamentBracket      @relation(fields: [tournamentBracketId], references: [id], onDelete: Cascade)
-
-  @@unique([tournamentBracketId, round, matchNumber, isWinnersBracket])
-  @@index([tournamentBracketId, round])
-  @@index([tournamentBracketId, isWinnersBracket])
-  @@map("tournament_matches")
-}
-
 enum EventType {
   TOURNAMENT
   SCORED
-  COMBINED_TEAM
 }
 
 enum EventStatus {
   UPCOMING
   IN_PROGRESS
   COMPLETED
-}
-
-enum TournamentStatus {
-  SEEDING
-  BRACKET_GENERATED
-  IN_PROGRESS
-  COMPLETED
-}
-
-enum MatchStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  UNDETERMINED
 }

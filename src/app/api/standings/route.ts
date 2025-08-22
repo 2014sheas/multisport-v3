@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         status: true,
         points: true,
         finalStandings: true,
+        eventType: true,
       },
       orderBy: { startTime: "asc" },
     });
@@ -80,9 +81,16 @@ export async function GET(request: NextRequest) {
             const points = event.points[position] || 0;
             team.earnedPoints += points;
 
-            // Count finishes
-            if (position === 0) team.firstPlaceFinishes++;
-            if (position === 1) team.secondPlaceFinishes++;
+            // Count finishes based on event type
+            if (event.eventType === "COMBINED_TEAM") {
+              // For Combined Team events: first 2 teams get 1st place, last 2 teams get 2nd place
+              if (position < 2) team.firstPlaceFinishes++;
+              if (position >= 2) team.secondPlaceFinishes++;
+            } else {
+              // For regular events: normal position counting
+              if (position === 0) team.firstPlaceFinishes++;
+              if (position === 1) team.secondPlaceFinishes++;
+            }
 
             team.eventResults.push({
               eventId: event.id,

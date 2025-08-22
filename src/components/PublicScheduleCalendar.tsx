@@ -22,6 +22,19 @@ const DAYS = [
   { date: "2025-08-24", label: "Sunday, Aug 24" },
 ];
 
+const formatEventType = (eventType: string) => {
+  switch (eventType) {
+    case "COMBINED_TEAM":
+      return "Combined Team";
+    case "TOURNAMENT":
+      return "Tournament";
+    case "SCORED":
+      return "Scored";
+    default:
+      return eventType;
+  }
+};
+
 export default function PublicScheduleCalendar({
   events,
 }: PublicScheduleCalendarProps) {
@@ -329,7 +342,7 @@ export default function PublicScheduleCalendar({
                                         : "bg-blue-400 text-blue-900"
                                     }`}
                                   >
-                                    {event.eventType}
+                                    {formatEventType(event.eventType)}
                                   </div>
                                 );
                               }
@@ -584,7 +597,7 @@ export default function PublicScheduleCalendar({
                                           : "bg-blue-400 text-blue-900"
                                       }`}
                                     >
-                                      {event.eventType}
+                                      {formatEventType(event.eventType)}
                                     </div>
                                   );
                                 }

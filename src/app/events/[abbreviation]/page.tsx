@@ -17,13 +17,14 @@ import {
 import Link from "next/link";
 import TournamentSeeding from "@/components/TournamentSeeding";
 import TournamentBracket from "@/components/TournamentBracket";
+import CombinedTeamMatch from "@/components/CombinedTeamMatch";
 
 interface Event {
   id: string;
   name: string;
   abbreviation: string;
   symbol: string;
-  eventType: "TOURNAMENT" | "SCORED";
+  eventType: "TOURNAMENT" | "SCORED" | "COMBINED_TEAM";
   status: "UPCOMING" | "IN_PROGRESS" | "COMPLETED";
   startTime: string;
   location: string;
@@ -113,7 +114,7 @@ export default function EventPage({
     name: "",
     abbreviation: "",
     symbol: "",
-    eventType: "TOURNAMENT" as "TOURNAMENT" | "SCORED",
+    eventType: "TOURNAMENT" as "TOURNAMENT" | "SCORED" | "COMBINED_TEAM",
     status: "UPCOMING" as "UPCOMING" | "IN_PROGRESS" | "COMPLETED",
     startTime: "",
     duration: 60,
@@ -330,6 +331,126 @@ export default function EventPage({
     }
   };
 
+  const handleStartCombinedTeamEvent = async () => {
+    try {
+      if (!event || teams.length !== 4) {
+        alert("This event requires exactly 4 teams to start.");
+        return;
+      }
+
+      // Randomly shuffle teams and create two combined teams
+      const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
+      const combinedTeam1 = shuffledTeams.slice(0, 2);
+      const combinedTeam2 = shuffledTeams.slice(2, 4);
+
+      // Update event status to IN_PROGRESS
+      const updateResponse = await fetch(`/api/admin/events/${event.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: event.name,
+          abbreviation: event.abbreviation,
+          symbol: event.symbol,
+          eventType: event.eventType,
+          status: "IN_PROGRESS",
+          startTime: event.startTime,
+          duration: event.duration,
+          location: event.location,
+          points: event.points,
+        }),
+      });
+
+      if (updateResponse.ok) {
+        // Refresh event data
+        await fetchEventData();
+        alert("Combined Team Event started successfully!");
+      } else {
+        console.error("Failed to update event status");
+        alert("Failed to start event. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error starting combined team event:", error);
+      alert("An error occurred while starting the event. Please try again.");
+    }
+  };
+
+  const handleCombinedTeamMatchComplete = async (
+    winner: string,
+    score: [number, number]
+  ) => {
+    try {
+      if (!event) return;
+
+      // First, get the current combined teams data to determine final standings
+      const combinedTeamsResponse = await fetch(
+        `/api/combined-team?eventId=${event.id}`
+      );
+      if (!combinedTeamsResponse.ok) {
+        throw new Error("Failed to fetch combined teams data");
+      }
+
+      const combinedTeamsData = await combinedTeamsResponse.json();
+      if (
+        !combinedTeamsData.combinedTeams ||
+        !combinedTeamsData.combinedTeams.teams
+      ) {
+        throw new Error("No combined teams data found");
+      }
+
+      // Determine final standings based on winner
+      // winner === "team1" means combinedTeams.team1 won (1st place)
+      // winner === "team2" means combinedTeams.team2 won (1st place)
+      const winningCombinedTeam =
+        winner === "team1"
+          ? combinedTeamsData.combinedTeams.teams.team1
+          : combinedTeamsData.combinedTeams.teams.team2;
+      const losingCombinedTeam =
+        winner === "team1"
+          ? combinedTeamsData.combinedTeams.teams.team2
+          : combinedTeamsData.combinedTeams.teams.team1;
+
+      // Create final standings array with team IDs in order of finish
+      // 1st place: winning combined team members
+      // 2nd place: losing combined team members
+      const finalStandings = [
+        ...winningCombinedTeam.map((team: Team) => team.id),
+        ...losingCombinedTeam.map((team: Team) => team.id),
+      ];
+
+      // Update event status to COMPLETED with final standings
+      const updateResponse = await fetch(`/api/admin/events/${event.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: event.name,
+          abbreviation: event.abbreviation,
+          symbol: event.symbol,
+          eventType: event.eventType,
+          status: "COMPLETED",
+          startTime: event.startTime,
+          duration: event.duration,
+          location: event.location,
+          points: event.points,
+          finalStandings: finalStandings,
+        }),
+      });
+
+      if (updateResponse.ok) {
+        // Refresh event data
+        await fetchEventData();
+        alert("Combined Team Event completed successfully!");
+      } else {
+        console.error("Failed to update event status");
+        alert("Failed to complete event. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error completing combined team event:", error);
+      alert("An error occurred while completing the event. Please try again.");
+    }
+  };
+
   const handleMatchUpdate = async (
     matchId: string,
     winnerId: string | null,
@@ -536,6 +657,19 @@ export default function EventPage({
     return "th";
   };
 
+  const formatEventType = (eventType: string) => {
+    switch (eventType) {
+      case "COMBINED_TEAM":
+        return "Combined Team";
+      case "TOURNAMENT":
+        return "Tournament";
+      case "SCORED":
+        return "Scored";
+      default:
+        return eventType;
+    }
+  };
+
   const TrendIndicator = ({ trend }: { trend: number }) => {
     if (trend === 0) {
       return (
@@ -619,10 +753,12 @@ export default function EventPage({
                     className={`inline-flex px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold rounded-full ${
                       event.eventType === "TOURNAMENT"
                         ? "bg-purple-100 text-purple-800"
+                        : event.eventType === "COMBINED_TEAM"
+                        ? "bg-orange-100 text-orange-800"
                         : "bg-green-100 text-green-800"
                     }`}
                   >
-                    {event.eventType}
+                    {formatEventType(event.eventType)}
                   </span>
                   <span
                     className={`inline-flex px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold rounded-full ${
@@ -855,6 +991,38 @@ export default function EventPage({
         </div>
       )}
 
+      {/* Combined Team Section */}
+      {event.eventType === "COMBINED_TEAM" && (
+        <div className="space-y-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Combined Team Event
+              </h2>
+            </div>
+
+            <div className="p-6">
+              <CombinedTeamMatch
+                eventId={event.id}
+                teams={teams.map((team) => ({
+                  id: team.id,
+                  name: team.name,
+                  abbreviation: team.abbreviation,
+                  color: team.color,
+                  averageRating: team.averageRating,
+                  members: team.members,
+                }))}
+                isAdmin={isAdmin}
+                eventStatus={event.status}
+                onMatchComplete={handleCombinedTeamMatchComplete}
+                onStartEvent={handleStartCombinedTeamEvent}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Team Rankings - Only show when event is UPCOMING */}
       {event.status === "UPCOMING" && (
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -1042,13 +1210,17 @@ export default function EventPage({
                       onChange={(e) =>
                         setEditFormData({
                           ...editFormData,
-                          eventType: e.target.value as "TOURNAMENT" | "SCORED",
+                          eventType: e.target.value as
+                            | "TOURNAMENT"
+                            | "SCORED"
+                            | "COMBINED_TEAM",
                         })
                       }
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     >
                       <option value="TOURNAMENT">Tournament</option>
                       <option value="SCORED">Scored</option>
+                      <option value="COMBINED_TEAM">Combined Team</option>
                     </select>
                   </div>
 
