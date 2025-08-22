@@ -206,16 +206,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    const player = await prisma.player.create({
-      data: {
-        name,
-        eloRating: eloRating || 5000,
-        experience: experience !== undefined ? experience : null,
-        wins: wins !== undefined ? wins : null,
-      },
+    // Create the player and event ratings for all existing events in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the player
+      const player = await tx.player.create({
+        data: {
+          name,
+          eloRating: eloRating || 5000,
+          experience: experience !== undefined ? experience : null,
+          wins: wins !== undefined ? wins : null,
+        },
+      });
+
+      // Get all events
+      const events = await tx.event.findMany({
+        select: { id: true },
+      });
+
+      // Create event ratings for all events with default rating of 5000
+      if (events.length > 0) {
+        const eventRatings = events.map((event) => ({
+          playerId: player.id,
+          eventId: event.id,
+          rating: 5000,
+        }));
+
+        await tx.eventRating.createMany({
+          data: eventRatings,
+        });
+      }
+
+      return player;
     });
 
-    return NextResponse.json({ player });
+    return NextResponse.json({ player: result });
   } catch (error) {
     console.error("Error creating player:", error);
     return NextResponse.json(

@@ -184,7 +184,12 @@ export async function GET(
             const initialRating = recentHistory[0].oldRating;
             const finalRating =
               recentHistory[recentHistory.length - 1].newRating;
-            trend = Math.round(finalRating - initialRating);
+            // Since we're calculating overall rating as average of event ratings,
+            // we need to divide the trend by the total number of events to get
+            // the proper overall trend
+            const totalEvents = member.player.eventRatings.length;
+            const rawTrend = finalRating - initialRating;
+            trend = totalEvents > 0 ? Math.round(rawTrend / totalEvents) : 0;
           }
 
           return {

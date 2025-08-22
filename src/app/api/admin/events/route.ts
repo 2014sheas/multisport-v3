@@ -89,21 +89,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const event = await prisma.event.create({
-      data: {
-        name,
-        abbreviation,
-        symbol,
-        eventType,
-        status,
-        startTime: startTime ? new Date(startTime) : null,
-        location: location || null,
-        points: points || [],
-        finalStandings: finalStandings || null,
-      },
+    // Create the event and event ratings for all existing players in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the event
+      const event = await tx.event.create({
+        data: {
+          name,
+          abbreviation,
+          symbol,
+          eventType,
+          status,
+          startTime: startTime ? new Date(startTime) : null,
+          location: location || null,
+          points: points || [],
+          finalStandings: finalStandings || null,
+        },
+      });
+
+      // Get all active players
+      const players = await tx.player.findMany({
+        where: { isActive: true },
+        select: { id: true },
+      });
+
+      // Create event ratings for all players with default rating of 5000
+      if (players.length > 0) {
+        const eventRatings = players.map((player) => ({
+          playerId: player.id,
+          eventId: event.id,
+          rating: 5000,
+        }));
+
+        await tx.eventRating.createMany({
+          data: eventRatings,
+        });
+      }
+
+      return event;
     });
 
-    return NextResponse.json({ event });
+    return NextResponse.json({ event: result });
   } catch (error) {
     console.error("Error creating event:", error);
     return NextResponse.json(

@@ -49,3 +49,6 @@ next-env.d.ts
 
 # One-time use scripts (setup, fixes, migrations)
 /one-time-scripts
+
+/docs
+/scripts

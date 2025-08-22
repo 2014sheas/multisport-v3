@@ -21,17 +21,20 @@ async function main() {
       { name: "Lisa Davis", eloRating: 5000 },
     ];
 
+    const createdPlayers = [];
     for (const playerData of players) {
       const existingPlayer = await prisma.player.findFirst({
         where: { name: playerData.name },
       });
 
       if (!existingPlayer) {
-        await prisma.player.create({
+        const player = await prisma.player.create({
           data: playerData,
         });
+        createdPlayers.push(player);
         console.log(`✅ Created player: ${playerData.name}`);
       } else {
+        createdPlayers.push(existingPlayer);
         console.log(`⏭️  Player already exists: ${playerData.name}`);
       }
     }
@@ -172,18 +175,54 @@ async function main() {
       },
     ];
 
+    const createdEvents = [];
     for (const eventData of augustEvents) {
       const existingEvent = await prisma.event.findFirst({
         where: { name: eventData.name },
       });
 
       if (!existingEvent) {
-        await prisma.event.create({
+        const event = await prisma.event.create({
           data: eventData,
         });
+        createdEvents.push(event);
         console.log(`✅ Created event: ${eventData.name}`);
       } else {
+        createdEvents.push(existingEvent);
         console.log(`⏭️  Event already exists: ${eventData.name}`);
+      }
+    }
+
+    // Create event ratings for all players and events
+    console.log("🏆 Creating event ratings for all players...");
+    for (const player of createdPlayers) {
+      for (const event of createdEvents) {
+        // Check if event rating already exists
+        const existingRating = await prisma.eventRating.findUnique({
+          where: {
+            playerId_eventId: {
+              playerId: player.id,
+              eventId: event.id,
+            },
+          },
+        });
+
+        if (!existingRating) {
+          await prisma.eventRating.create({
+            data: {
+              playerId: player.id,
+              eventId: event.id,
+              rating: 5000,
+            },
+          });
+          console.log(
+            `✅ Created event rating: ${player.name} -> ${event.name} (5000)`
+          );
+        } else {
+          console.log(
+            `⏭️  Event rating already exists: ${player.name} -> ${event.name}`
+          );
+        }
       }
     }
   } else {

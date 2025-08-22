@@ -1,42 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 
-// This API updates event-specific ratings and creates Elo history
-// The teams and players APIs calculate ratings on-the-fly from event ratings
-// to ensure consistency between rankings page and teams page
+// Elo rating calculation function
+function calculateEloChange(winnerRating: number, loserRating: number) {
+  const expectedWinnerScore =
+    1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
+  const expectedLoserScore = 1 - expectedWinnerScore;
 
-// Elo calculation constants
-const K_FACTOR = 800; // Much higher K-factor for very dynamic ratings on 0-9999 scale
-const BASE_RATING = 5000; // Middle of the 0-9999 scale
-const RATING_SCALE = 750; // Adjusted scale factor for 0-9999 range
+  const actualWinnerScore = 1;
+  const actualLoserScore = 0;
 
-function calculateEloChange(
-  winnerRating: number,
-  loserRating: number
-): { winnerChange: number; loserChange: number } {
-  const expectedWinner =
-    1 / (1 + Math.pow(10, (loserRating - winnerRating) / RATING_SCALE));
-  const expectedLoser = 1 - expectedWinner;
+  const kFactor = 32; // Standard K-factor for Elo calculations
 
-  const winnerChange = Math.round(K_FACTOR * (1 - expectedWinner));
-  const loserChange = Math.round(K_FACTOR * (0 - expectedLoser));
+  const winnerChange = Math.round(
+    kFactor * (actualWinnerScore - expectedWinnerScore)
+  );
+  const loserChange = Math.round(
+    kFactor * (actualLoserScore - expectedLoserScore)
+  );
 
   return { winnerChange, loserChange };
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { voterSession, keepId, tradeId, cutId, eventId } =
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const { keepId, tradeId, cutId, eventId, voterSession } =
       await request.json();
 
-    if (!keepId || !tradeId || !cutId || !voterSession) {
+    // Validate required fields
+    if (!keepId || !tradeId || !cutId || !eventId || !voterSession) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        {
+          error:
+            "Missing required fields: keepId, tradeId, cutId, eventId, and voterSession are required",
+        },
         { status: 400 }
       );
     }
 
-    // Validate that all three players are different
+    // Ensure all three players are different
     if (keepId === tradeId || keepId === cutId || tradeId === cutId) {
       return NextResponse.json(
         { error: "All three players must be different" },
@@ -44,7 +57,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the current players and their event-specific ratings
+    // Verify the event exists
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      return NextResponse.json({ error: "Invalid event ID" }, { status: 400 });
+    }
+
+    // Get the three players
     const [keepPlayer, tradePlayer, cutPlayer] = await Promise.all([
       prisma.player.findUnique({
         where: { id: keepId },
@@ -64,49 +86,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Players not found" }, { status: 404 });
     }
 
-    // Get or create event-specific ratings
+    // Get or create event-specific ratings for the specific event
     const [keepEventRating, tradeEventRating, cutEventRating] =
       await Promise.all([
         prisma.eventRating.upsert({
           where: {
             playerId_eventId: {
               playerId: keepId,
-              eventId: eventId || "default",
+              eventId: eventId,
             },
           },
           update: {},
           create: {
             playerId: keepId,
-            eventId: eventId || "default",
-            rating: keepPlayer.eloRating,
+            eventId: eventId,
+            rating: 5000,
           },
         }),
         prisma.eventRating.upsert({
           where: {
             playerId_eventId: {
               playerId: tradeId,
-              eventId: eventId || "default",
+              eventId: eventId,
             },
           },
           update: {},
           create: {
             playerId: tradeId,
-            eventId: eventId || "default",
-            rating: tradePlayer.eloRating,
+            eventId: eventId,
+            rating: 5000,
           },
         }),
         prisma.eventRating.upsert({
           where: {
             playerId_eventId: {
               playerId: cutId,
-              eventId: eventId || "default",
+              eventId: eventId,
             },
           },
           update: {},
           create: {
             playerId: cutId,
-            eventId: eventId || "default",
-            rating: cutPlayer.eloRating,
+            eventId: eventId,
+            rating: 5000,
           },
         }),
       ]);
@@ -129,7 +151,7 @@ export async function POST(request: NextRequest) {
         where: {
           playerId_eventId: {
             playerId: keepId,
-            eventId: eventId || "default",
+            eventId: eventId,
           },
         },
         data: {
@@ -141,7 +163,7 @@ export async function POST(request: NextRequest) {
         where: {
           playerId_eventId: {
             playerId: tradeId,
-            eventId: eventId || "default",
+            eventId: eventId,
           },
         },
         data: {
@@ -153,7 +175,7 @@ export async function POST(request: NextRequest) {
         where: {
           playerId_eventId: {
             playerId: cutId,
-            eventId: eventId || "default",
+            eventId: eventId,
           },
         },
         data: {
@@ -168,7 +190,7 @@ export async function POST(request: NextRequest) {
           keepId,
           tradeId,
           cutId,
-          eventId: eventId || null,
+          eventId: eventId,
         },
       }),
       // Record Elo history for keep player
@@ -177,7 +199,7 @@ export async function POST(request: NextRequest) {
           playerId: keepId,
           oldRating: keepEventRating.rating,
           newRating: keepEventRating.rating + keepTradeChange + keepCutChange,
-          eventId: eventId || null,
+          eventId: eventId,
         },
       }),
       // Record Elo history for trade player
@@ -186,7 +208,7 @@ export async function POST(request: NextRequest) {
           playerId: tradeId,
           oldRating: tradeEventRating.rating,
           newRating: tradeEventRating.rating + tradeKeepChange + tradeCutChange,
-          eventId: eventId || null,
+          eventId: eventId,
         },
       }),
       // Record Elo history for cut player
@@ -195,32 +217,39 @@ export async function POST(request: NextRequest) {
           playerId: cutId,
           oldRating: cutEventRating.rating,
           newRating: cutEventRating.rating + cutTradeChange + cutKeepChange,
-          eventId: eventId || null,
+          eventId: eventId,
         },
       }),
     ]);
 
     // Note: We don't update the main player.eloRating field here because:
-    // 1. The teams and players APIs now calculate ratings on-the-fly from event ratings
-    // 2. This ensures consistency between rankings page and teams page
-    // 3. No risk of the main rating field getting out of sync
+    // 1. We're now using event-specific ratings for all calculations
+    // 2. The global eloRating can be calculated as an average of event ratings if needed
+    // 3. This keeps the data more accurate and event-specific
 
     return NextResponse.json({
       success: true,
-      keep: {
-        id: updatedKeep.id,
-        eloRating: updatedKeep.rating,
-        change: keepTradeChange + keepCutChange,
-      },
-      trade: {
-        id: updatedTrade.id,
-        eloRating: updatedTrade.rating,
-        change: tradeKeepChange + tradeCutChange,
-      },
-      cut: {
-        id: updatedCut.id,
-        eloRating: updatedCut.rating,
-        change: cutTradeChange + cutKeepChange,
+      message: "Vote recorded successfully",
+      eventId: eventId,
+      ratings: {
+        keep: {
+          playerId: keepId,
+          oldRating: keepEventRating.rating,
+          newRating: updatedKeep.rating,
+          change: keepTradeChange + keepCutChange,
+        },
+        trade: {
+          playerId: tradeId,
+          oldRating: tradeEventRating.rating,
+          newRating: updatedTrade.rating,
+          change: tradeKeepChange + tradeCutChange,
+        },
+        cut: {
+          playerId: cutId,
+          oldRating: cutEventRating.rating,
+          newRating: updatedCut.rating,
+          change: cutKeepChange + cutTradeChange,
+        },
       },
     });
   } catch (error) {
