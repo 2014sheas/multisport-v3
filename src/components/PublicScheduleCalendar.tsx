@@ -169,11 +169,11 @@ export default function PublicScheduleCalendar({
       <div className="hidden lg:block p-6">
         <div className="flex">
           {/* Time labels on the left */}
-          <div className="w-16 flex-shrink-0">
+          <div className="w-16 flex-shrink-0" style={{ zIndex: 5 }}>
             {/* Empty space to match day header height */}
             <div
               className="border-b border-gray-200"
-              style={{ height: "48px" }}
+              style={{ height: "48px", zIndex: 5 }}
             >
               {/* Empty space to match day header height */}
             </div>
@@ -184,7 +184,7 @@ export default function PublicScheduleCalendar({
                   <div
                     key={minutes}
                     className="border-b border-gray-200 text-xs text-gray-500 flex items-center justify-center"
-                    style={{ height: "60px" }}
+                    style={{ height: "60px", zIndex: 5 }}
                   >
                     {hour === 12
                       ? "12 PM"
@@ -205,7 +205,10 @@ export default function PublicScheduleCalendar({
                 className="border-r border-gray-200 last:border-r-0"
               >
                 {/* Day header */}
-                <div className="bg-gray-50 p-3 text-center font-medium text-gray-900 border-b border-gray-200">
+                <div
+                  className="bg-gray-50 p-3 text-center font-medium text-gray-900 border-b border-gray-200"
+                  style={{ zIndex: 5 }}
+                >
                   {day.label}
                 </div>
 
@@ -222,7 +225,7 @@ export default function PublicScheduleCalendar({
                         style={{
                           top: `${i * 60}px`,
                           height: "60px",
-                          zIndex: 1,
+                          zIndex: 0,
                         }}
                       />
                     );
@@ -244,7 +247,7 @@ export default function PublicScheduleCalendar({
                         style={{
                           top: `${((minutes - 540) / 5) * 5}px`,
                           height: "5px",
-                          zIndex: 0, // Lower z-index so events appear above grid lines
+                          zIndex: 0,
                         }}
                         title={(() => {
                           const displayHour =
@@ -276,7 +279,7 @@ export default function PublicScheduleCalendar({
                       return (
                         <div
                           key={event.id}
-                          className={`absolute text-white p-2 rounded text-sm overflow-hidden ${getEventColor(
+                          className={`absolute text-white p-2 rounded text-sm overflow-hidden z-10 ${getEventColor(
                             event.location
                           )}`}
                           style={{
@@ -288,8 +291,50 @@ export default function PublicScheduleCalendar({
                             width: positioning.width,
                           }}
                         >
-                          <div className="font-medium truncate">
-                            {event.name}
+                          {/* Event Type Pill - only show when not overlapping */}
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="font-medium truncate flex-1">
+                              {event.name}
+                            </div>
+                            {(() => {
+                              const eventsOnSameDay = scheduledEvents.filter(
+                                (e) => e.dayIndex === dayIndex
+                              );
+                              const overlappingCount = eventsOnSameDay.filter(
+                                (otherEvent) => {
+                                  if (otherEvent.id === event.id) return false;
+                                  const eventStart =
+                                    event.startTime?.getTime() || 0;
+                                  const eventEnd =
+                                    eventStart + (event.duration || 60) * 60000;
+                                  const otherStart =
+                                    otherEvent.startTime?.getTime() || 0;
+                                  const otherEnd =
+                                    otherStart +
+                                    (otherEvent.duration || 60) * 60000;
+                                  return (
+                                    eventStart < otherEnd &&
+                                    eventEnd > otherStart
+                                  );
+                                }
+                              ).length;
+
+                              // Only show pill when no overlapping events
+                              if (overlappingCount === 0) {
+                                return (
+                                  <div
+                                    className={`px-1 py-0.5 rounded-full text-[10px] font-medium ml-1 flex-shrink-0 ${
+                                      event.eventType === "TOURNAMENT"
+                                        ? "bg-yellow-400 text-yellow-900"
+                                        : "bg-blue-400 text-blue-900"
+                                    }`}
+                                  >
+                                    {event.eventType}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                           {event.location && (
                             <div className="text-xs opacity-75 font-medium">
@@ -417,7 +462,7 @@ export default function PublicScheduleCalendar({
                           style={{
                             top: `${i * 40}px`,
                             height: "1px",
-                            zIndex: 0, // Lower z-index so events appear above grid lines
+                            zIndex: 0,
                           }}
                         />
                       );
@@ -490,7 +535,7 @@ export default function PublicScheduleCalendar({
                           <Link
                             key={event.id}
                             href={`/events/${event.abbreviation}`}
-                            className={`absolute rounded text-white p-2 cursor-pointer hover:opacity-80 transition-opacity ${getEventColor(
+                            className={`absolute rounded text-white p-2 cursor-pointer hover:opacity-80 transition-opacity z-10 ${getEventColor(
                               event.location
                             )}`}
                             style={{
@@ -502,8 +547,49 @@ export default function PublicScheduleCalendar({
                               width,
                             }}
                           >
-                            <div className="font-medium text-sm truncate">
-                              {event.name}
+                            {/* Event Type Pill - only show when not overlapping */}
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="font-medium text-sm truncate flex-1">
+                                {event.name}
+                              </div>
+                              {(() => {
+                                // Check for overlapping events
+                                const overlappingEvents = dayEvents.filter(
+                                  (otherEvent) => {
+                                    if (otherEvent.id === event.id)
+                                      return false;
+                                    if (!otherEvent.startTime) return false;
+
+                                    const otherStartMinutes =
+                                      otherEvent.startTime.getHours() * 60 +
+                                      otherEvent.startTime.getMinutes();
+                                    const otherEndMinutes =
+                                      otherStartMinutes +
+                                      (otherEvent.duration || 60);
+
+                                    return (
+                                      eventStartMinutes < otherEndMinutes &&
+                                      eventEndMinutes > otherStartMinutes
+                                    );
+                                  }
+                                );
+
+                                // Only show pill when no overlapping events
+                                if (overlappingEvents.length === 0) {
+                                  return (
+                                    <div
+                                      className={`px-1 py-0.5 rounded-full text-[10px] font-medium ml-1 flex-shrink-0 ${
+                                        event.eventType === "TOURNAMENT"
+                                          ? "bg-yellow-400 text-yellow-900"
+                                          : "bg-blue-400 text-blue-900"
+                                      }`}
+                                    >
+                                      {event.eventType}
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                             {event.location && (
                               <div className="text-xs opacity-90 truncate">
