@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Save, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2 } from "lucide-react";
 
 interface Player {
   id: string;

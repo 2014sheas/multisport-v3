@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Save, Calendar, Clock } from "lucide-react";
+import { Settings, Save } from "lucide-react";
 
 export default function SettingsPage() {
   const [eventTime, setEventTime] = useState<string>("");

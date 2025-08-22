@@ -39,7 +39,7 @@ interface Event {
   symbol: string;
   status: string;
   points: number[];
-  finalStandings: number[] | null;
+  finalStandings: string[] | null; // Now stores team IDs instead of indices
   startTime: string;
   location: string;
 }

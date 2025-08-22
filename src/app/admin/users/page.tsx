@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Edit, Link, Unlink, Users } from "lucide-react";
+import { Search, Link, Unlink, Users } from "lucide-react";
 import AdminGuard from "@/components/AdminGuard";
 
 interface User {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Edit, Trash2 } from "lucide-react";
+import { Users, Plus, Edit } from "lucide-react";
 import AdminGuard from "@/components/AdminGuard";
 
 interface Player {

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   Calendar,
-  Clock,
   MapPin,
   Users,
   Trophy,
@@ -54,6 +53,44 @@ interface TeamMember {
   globalRank: number;
 }
 
+interface TournamentBracket {
+  id: string;
+  eventId: string;
+  matches: Array<{
+    id: string;
+    round: number;
+    matchNumber: number;
+    isWinnersBracket: boolean;
+    team1Id: string | null;
+    team2Id: string | null;
+    winnerId?: string;
+    status:
+      | "SCHEDULED"
+      | "IN_PROGRESS"
+      | "COMPLETED"
+      | "CANCELLED"
+      | "UNDETERMINED";
+    team1FromMatchId?: string | null;
+    team1IsWinner?: boolean | null;
+    team2FromMatchId?: string | null;
+    team2IsWinner?: boolean | null;
+  }>;
+  participants: Array<{
+    id: string;
+    teamId: string;
+    seed?: number;
+    isEliminated: boolean;
+    eliminationRound?: number;
+    finalPosition?: number;
+    team: {
+      id: string;
+      name: string;
+      abbreviation: string;
+      color: string;
+    };
+  }>;
+}
+
 export default function EventPage({
   params,
 }: {
@@ -64,7 +101,8 @@ export default function EventPage({
   const [loading, setLoading] = useState(true);
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [abbreviation, setAbbreviation] = useState<string>("");
-  const [tournamentBracket, setTournamentBracket] = useState<any>(null);
+  const [tournamentBracket, setTournamentBracket] =
+    useState<TournamentBracket | null>(null);
   const [bracketLoading, setBracketLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -744,7 +782,7 @@ export default function EventPage({
                     abbreviation: team.abbreviation,
                     color: team.color,
                     seed: tournamentBracket.participants.find(
-                      (p: any) => p.teamId === team.id
+                      (p) => p.teamId === team.id
                     )?.seed,
                   }))}
                   matches={tournamentBracket.matches}
@@ -780,8 +818,8 @@ export default function EventPage({
                   <div className="mt-2 text-sm text-yellow-700">
                     <p>
                       The tournament bracket has been generated but the event is
-                      still in "Upcoming" status. Click "Start Tournament" to
-                      begin the tournament.
+                      still in &quot;Upcoming&quot; status. Click &quot;Start
+                      Tournament&quot; to begin the tournament.
                     </p>
                   </div>
                   {isAdmin && (
@@ -829,7 +867,7 @@ export default function EventPage({
 
           <div className="divide-y divide-gray-200">
             {teams.length > 0 ? (
-              teams.map((team, index) => (
+              teams.map((team) => (
                 <div key={team.id} className="p-6">
                   {/* Team Header - Clickable */}
                   <div
@@ -1139,7 +1177,7 @@ export default function EventPage({
                       </button>
                       <p className="text-xs text-red-600">
                         ⚠️ This will delete all tournament data and reset to
-                        "Upcoming" status
+                        &quot;Upcoming&quot; status
                       </p>
                     </div>
                   )}

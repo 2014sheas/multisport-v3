@@ -39,10 +39,10 @@ export async function GET(request: NextRequest) {
       orderBy: { startTime: "asc" },
     });
 
-    // Type assertion for finalStandings
+    // Type assertion for finalStandings - now stores team IDs (strings)
     const typedEvents = events.map((event) => ({
       ...event,
-      finalStandings: event.finalStandings as number[] | null,
+      finalStandings: event.finalStandings as string[] | null,
     }));
 
     // Get all teams
@@ -68,19 +68,14 @@ export async function GET(request: NextRequest) {
       eventResults: [],
     }));
 
-    // Create a map from team ID to standings index for finalStandings lookup
-    const teamIdToIndexMap = new Map<string, number>();
-    teams.forEach((team, index) => {
-      teamIdToIndexMap.set(team.id, index + 1); // 1-based indexing for finalStandings
-    });
-
     // Process each event
     for (const event of typedEvents) {
       if (event.status === "COMPLETED" && event.finalStandings) {
         // Use actual final standings for completed events
-        event.finalStandings.forEach((teamIndex, position) => {
-          // Find team by the original index from finalStandings
-          const team = standings[teamIndex - 1];
+        // finalStandings now contains team IDs directly
+        event.finalStandings.forEach((teamId, position) => {
+          // Find team by team ID
+          const team = standings.find((s) => s.teamId === teamId);
           if (team) {
             const points = event.points[position] || 0;
             team.earnedPoints += points;

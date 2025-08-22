@@ -97,6 +97,13 @@ export default function TournamentBracket({
 
   // Removed unused functions: getTeamById, getTeamByParticipantId
 
+  const getOrdinalSuffix = (n: number) => {
+    if (n % 10 === 1 && n % 100 !== 11) return "st";
+    if (n % 10 === 2 && n % 100 !== 12) return "nd";
+    if (n % 10 === 3 && n % 100 !== 13) return "rd";
+    return "th";
+  };
+
   const getMatchById = (matchId: string) => {
     return matches.find((match) => match.id === matchId);
   };
@@ -373,21 +380,16 @@ export default function TournamentBracket({
 
   const handleCompleteTournament = async () => {
     try {
-      // Calculate final standings
+      // Calculate final standings - these are already team IDs
       const finalStandings = calculateFinalStandings();
 
-      // Convert team IDs to team indices (1-based) for the standings API
-      const finalStandingsIndices = finalStandings.map((teamId) => {
-        const teamIndex = teams.findIndex((team) => team.id === teamId);
-        return teamIndex + 1; // Convert to 1-based index
-      });
-
+      // Store team IDs directly - much simpler!
       const response = await fetch(`/api/admin/events/${eventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: "COMPLETED",
-          finalStandings: finalStandingsIndices,
+          finalStandings: finalStandings, // Store team IDs directly
         }),
       });
 
@@ -521,6 +523,7 @@ export default function TournamentBracket({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {(() => {
+              // For now, use calculated standings but note this should match database
               const finalStandings = calculateFinalStandings();
               const medals = ["🥇", "🥈", "🥉", "4️⃣"];
               const places = [

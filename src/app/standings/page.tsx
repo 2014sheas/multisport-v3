@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trophy, Medal, Calendar, MapPin, Target } from "lucide-react";
+import { Trophy, Medal, Target } from "lucide-react";
 import PointHistoryChart from "@/components/PointHistoryChart";
 
 interface TeamStanding {
@@ -33,16 +33,14 @@ interface Event {
   symbol: string;
   status: string;
   points: number[];
-  finalStandings: number[] | null;
+  finalStandings: string[] | null; // Now stores team IDs instead of indices
   startTime: string;
   location: string;
 }
 
 export default function StandingsPage() {
   const [standings, setStandings] = useState<TeamStanding[]>([]);
-  const [originalStandings, setOriginalStandings] = useState<TeamStanding[]>(
-    []
-  );
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<
@@ -66,9 +64,6 @@ export default function StandingsPage() {
           const standingsData = await standingsResponse.json();
           const eventsData = await eventsResponse.json();
           setStandings(standingsData.standings);
-          setOriginalStandings(
-            standingsData.originalStandings || standingsData.standings
-          );
           setEvents(eventsData.events);
         } else {
           console.error("API responses not ok:", {
@@ -247,7 +242,7 @@ export default function StandingsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getSortedStandings().map((team, index) => (
+                {getSortedStandings().map((team) => (
                   <tr key={team.teamId} className="hover:bg-gray-50">
                     <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -366,8 +361,9 @@ export default function StandingsPage() {
                     <div className="space-y-2">
                       {completedEvents[
                         currentCompletedEventIndex
-                      ].finalStandings?.map((teamIndex, position) => {
-                        const team = originalStandings[teamIndex - 1];
+                      ].finalStandings?.map((teamId, position) => {
+                        // Find team by team ID instead of using index
+                        const team = standings.find((s) => s.teamId === teamId);
                         if (!team) return null;
                         return (
                           <div
