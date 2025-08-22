@@ -625,7 +625,11 @@ export default function EventScheduleCalendar({
                       const adjustedMinutes = totalMinutes - 540; // 540 = 9 AM
                       const fiveMinuteSlots = adjustedMinutes / 5;
                       const top = getYFromTimeSlot(fiveMinuteSlots + 108); // Add back the offset for positioning
-                      const height = Math.max(25, event.duration || 60); // Minimum 5 minutes
+                      // Calculate height based on duration: 5px per 5-minute slot
+                      const height = Math.max(
+                        25,
+                        ((event.duration || 60) / 5) * 5
+                      );
                       const positioning = getEventPositioning(event, dayIndex);
 
                       return (
@@ -856,7 +860,6 @@ export default function EventScheduleCalendar({
 
                         // Calculate positioning for overlapping events
                         let left = "1px";
-                        let right = "1px";
                         let width = "auto";
 
                         if (overlappingEvents.length > 0) {
@@ -875,11 +878,12 @@ export default function EventScheduleCalendar({
 
                           // Calculate positioning for up to 3 events side by side
                           const maxEvents = Math.min(3, allOverlapping.length);
-                          const eventWidth = `calc((100% - 2px) / ${maxEvents})`;
-                          left = `calc(${eventIndex} * (100% / ${maxEvents}) + 1px)`;
-                          right = `calc(100% - ${
+                          const eventWidth = `calc((100% - ${
+                            maxEvents + 1
+                          }px) / ${maxEvents})`;
+                          left = `calc(${eventIndex} * (100% / ${maxEvents}) + ${
                             eventIndex + 1
-                          } * (100% / ${maxEvents}) + 1px)`;
+                          }px)`;
                           width = eventWidth;
                         }
 
@@ -894,7 +898,7 @@ export default function EventScheduleCalendar({
                               height: `${Math.max(height, 30)}px`,
                               minHeight: "30px",
                               left,
-                              right,
+                              right: "1px",
                               width,
                             }}
                           >

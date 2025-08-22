@@ -12,6 +12,7 @@ export async function GET() {
         eventType: true,
         status: true,
         startTime: true,
+        duration: true,
         location: true,
         points: true,
         finalStandings: true,

@@ -61,7 +61,7 @@ export default function PublicScheduleCalendar({
           return {
             ...event,
             startTime: event.startTime ? new Date(event.startTime) : null,
-            duration: 60, // Default to 1 hour since duration field may not exist
+            duration: event.duration || 60, // Use actual duration or default to 1 hour
             dayIndex: event.startTime
               ? getDayIndex(new Date(event.startTime))
               : undefined,
@@ -167,13 +167,12 @@ export default function PublicScheduleCalendar({
 
     // Calculate positioning for up to 3 events side by side
     const maxEvents = Math.min(3, allOverlapping.length);
-    const eventWidth = `calc((100% - 2px) / ${maxEvents})`;
-    const left = `calc(${eventIndex} * (100% / ${maxEvents}) + 1px)`;
-    const right = `calc(100% - ${
+    const eventWidth = `calc((100% - ${maxEvents + 1}px) / ${maxEvents})`;
+    const left = `calc(${eventIndex} * (100% / ${maxEvents}) + ${
       eventIndex + 1
-    } * (100% / ${maxEvents}) + 1px)`;
+    }px)`;
 
-    return { left, right, width: eventWidth };
+    return { left, right: "auto", width: eventWidth };
   };
 
   return (
@@ -286,7 +285,11 @@ export default function PublicScheduleCalendar({
                       const adjustedMinutes = totalMinutes - 540; // 540 = 9 AM
                       const fiveMinuteSlots = adjustedMinutes / 5;
                       const top = getYFromTimeSlot(fiveMinuteSlots + 108); // Add back the offset for positioning
-                      const height = Math.max(25, event.duration || 60); // Minimum 5 minutes
+                      // Calculate height based on duration: 5px per 5-minute slot
+                      const height = Math.max(
+                        25,
+                        ((event.duration || 60) / 5) * 5
+                      );
                       const positioning = getEventPositioning(event, dayIndex);
 
                       return (
@@ -517,7 +520,6 @@ export default function PublicScheduleCalendar({
 
                         // Calculate positioning for overlapping events
                         let left = "1px";
-                        let right = "1px";
                         let width = "auto";
 
                         if (overlappingEvents.length > 0) {
@@ -536,11 +538,12 @@ export default function PublicScheduleCalendar({
 
                           // Calculate positioning for up to 3 events side by side
                           const maxEvents = Math.min(3, allOverlapping.length);
-                          const eventWidth = `calc((100% - 2px) / ${maxEvents})`;
-                          left = `calc(${eventIndex} * (100% / ${maxEvents}) + 1px)`;
-                          right = `calc(100% - ${
+                          const eventWidth = `calc((100% - ${
+                            maxEvents + 1
+                          }px) / ${maxEvents})`;
+                          left = `calc(${eventIndex} * (100% / ${maxEvents}) + ${
                             eventIndex + 1
-                          } * (100% / ${maxEvents}) + 1px)`;
+                          }px)`;
                           width = eventWidth;
                         }
 
@@ -556,7 +559,7 @@ export default function PublicScheduleCalendar({
                               height: `${Math.max(height, 30)}px`,
                               minHeight: "30px",
                               left,
-                              right,
+                              right: "auto",
                               width,
                             }}
                           >
