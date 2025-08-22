@@ -10,6 +10,7 @@ interface TeamStanding {
   teamName: string;
   teamAbbreviation: string;
   teamColor: string;
+  teamLogo?: string | null;
   earnedPoints: number;
   projectedPoints: number;
   firstPlaceFinishes: number;
@@ -255,12 +256,20 @@ export default function StandingsPage() {
                   <tr key={team.teamId} className="hover:bg-gray-50">
                     <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div
-                          className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm"
-                          style={{ backgroundColor: team.teamColor }}
-                        >
-                          {team.teamAbbreviation}
-                        </div>
+                        {team.teamLogo ? (
+                          <img
+                            src={team.teamLogo}
+                            alt={`${team.teamName} logo`}
+                            className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg object-cover border border-gray-200"
+                          />
+                        ) : (
+                          <div
+                            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm"
+                            style={{ backgroundColor: team.teamColor }}
+                          >
+                            {team.teamAbbreviation}
+                          </div>
+                        )}
                         <div className="ml-2 sm:ml-3">
                           <div className="text-xs sm:text-sm font-medium text-gray-900">
                             {team.teamAbbreviation}
@@ -400,12 +409,20 @@ export default function StandingsPage() {
                               >
                                 #{displayPosition}
                               </span>
-                              <div
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                                style={{ backgroundColor: team.teamColor }}
-                              >
-                                {team.teamAbbreviation}
-                              </div>
+                              {team.teamLogo ? (
+                                <img
+                                  src={team.teamLogo}
+                                  alt={`${team.teamName} logo`}
+                                  className="w-6 h-6 rounded-lg object-cover border border-gray-200"
+                                />
+                              ) : (
+                                <div
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                  style={{ backgroundColor: team.teamColor }}
+                                >
+                                  {team.teamAbbreviation}
+                                </div>
+                              )}
                               <span className="text-sm font-medium text-gray-900">
                                 {team.teamName}
                               </span>
@@ -525,12 +542,20 @@ export default function StandingsPage() {
                                 <span className="text-sm font-medium text-blue-500">
                                   #{position + 1}
                                 </span>
-                                <div
-                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                                  style={{ backgroundColor: team.teamColor }}
-                                >
-                                  {team.teamAbbreviation}
-                                </div>
+                                {team.teamLogo ? (
+                                  <img
+                                    src={team.teamLogo}
+                                    alt={`${team.teamName} logo`}
+                                    className="w-6 h-6 rounded-lg object-cover border border-gray-200"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                    style={{ backgroundColor: team.teamColor }}
+                                  >
+                                    {team.teamAbbreviation}
+                                  </div>
+                                )}
                                 <span className="text-sm font-medium text-gray-900">
                                   {team.teamName}
                                 </span>

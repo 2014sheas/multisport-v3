@@ -40,6 +40,7 @@ interface Team {
   name: string;
   abbreviation: string;
   color: string;
+  logo?: string | null;
   averageRating: number;
   averageTrend: number;
   memberCount: number;
@@ -1042,16 +1043,32 @@ export default function EventPage({
                     className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-4 rounded-lg transition-colors"
                     onClick={() => toggleTeamExpansion(team.id)}
                   >
-                    <span
-                      className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold"
-                      style={{
-                        backgroundColor: `${team.color}20`,
-                        color: team.color,
-                        border: `1px solid ${team.color}40`,
-                      }}
-                    >
-                      {team.name}
-                    </span>
+                    <div className="flex items-center space-x-3">
+                      {team.logo ? (
+                        <img
+                          src={team.logo}
+                          alt={`${team.name} logo`}
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm"
+                          style={{ backgroundColor: team.color }}
+                        >
+                          {team.abbreviation}
+                        </div>
+                      )}
+                      <span
+                        className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold"
+                        style={{
+                          backgroundColor: `${team.color}20`,
+                          color: team.color,
+                          border: `1px solid ${team.color}40`,
+                        }}
+                      >
+                        {team.name}
+                      </span>
+                    </div>
 
                     <div className="flex items-center space-x-4">
                       {/* Team Trend */}

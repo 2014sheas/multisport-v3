@@ -10,6 +10,7 @@ export async function GET() {
         captainId: true,
         color: true,
         abbreviation: true,
+        logo: true,
       },
     });
 
@@ -131,6 +132,7 @@ export async function GET() {
           name: team.name,
           abbreviation: team.abbreviation,
           color: team.color,
+          logo: team.logo,
           averageRating,
           captain: captain
             ? {

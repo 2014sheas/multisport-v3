@@ -8,6 +8,9 @@ export default withAuth(
     const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
     const isAuthRoute = req.nextUrl.pathname.startsWith("/auth");
     const isProfileRoute = req.nextUrl.pathname.startsWith("/profile");
+    const isTeamManageRoute =
+      req.nextUrl.pathname.startsWith("/teams/") &&
+      req.nextUrl.pathname.includes("/manage");
 
     // If user is authenticated and trying to access auth pages, redirect to home
     if (isAuthRoute && token) {
@@ -29,6 +32,11 @@ export default withAuth(
       return NextResponse.redirect(new URL("/auth/signin", req.url));
     }
 
+    // If trying to access team management routes without authentication
+    if (isTeamManageRoute && !token) {
+      return NextResponse.redirect(new URL("/auth/signin", req.url));
+    }
+
     return NextResponse.next();
   },
   {
@@ -37,6 +45,9 @@ export default withAuth(
         const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
         const isAuthRoute = req.nextUrl.pathname.startsWith("/auth");
         const isProfileRoute = req.nextUrl.pathname.startsWith("/profile");
+        const isTeamManageRoute =
+          req.nextUrl.pathname.startsWith("/teams/") &&
+          req.nextUrl.pathname.includes("/manage");
 
         // For auth routes, we want to allow access even without token
         // (the middleware will handle redirecting authenticated users)
@@ -54,6 +65,11 @@ export default withAuth(
           return !!token;
         }
 
+        // For team management routes, we need authentication
+        if (isTeamManageRoute) {
+          return !!token;
+        }
+
         // For all other routes (rankings, events, teams, etc.), allow public access
         return true;
       },
@@ -67,5 +83,6 @@ export const config = {
     "/api/admin/:path*",
     "/profile/:path*",
     "/api/profile/:path*",
+    "/teams/:path*/manage/:path*",
   ],
 };

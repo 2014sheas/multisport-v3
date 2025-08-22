@@ -29,6 +29,7 @@ interface TeamData {
   name: string;
   color: string;
   abbreviation: string | null;
+  logo?: string | null;
 }
 
 interface PlayerRanking {
@@ -61,6 +62,7 @@ interface MaterializedViewPlayer {
   team_name: string | null;
   team_color: string | null;
   team_abbreviation: string | null;
+  team_logo: string | null;
   is_captain: boolean;
   event_count: bigint;
   events_participated: bigint;
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
           "team_name",
           "team_color",
           "team_abbreviation",
+          "team_logo",
           "is_captain",
           "event_count",
           "events_participated"
@@ -136,6 +139,7 @@ export async function GET(request: NextRequest) {
                 name: player.team_name,
                 color: player.team_color,
                 abbreviation: player.team_abbreviation,
+                logo: player.team_logo,
               }
             : null,
           gamesPlayed: Number(player.event_count || 0),

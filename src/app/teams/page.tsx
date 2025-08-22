@@ -10,6 +10,7 @@ interface Team {
   abbreviation: string;
   color: string;
   averageRating: number;
+  logo?: string | null;
   captain?: {
     id: string;
     name: string;
@@ -94,10 +95,27 @@ export default function TeamsPage() {
               className="bg-white rounded-lg shadow-md p-6 border-l-4 hover:shadow-lg transition-shadow cursor-pointer"
               style={{ borderLeftColor: team.color }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {team.name}
-                </h3>
+              <div className="flex items-center space-x-3 mb-4">
+                {team.logo ? (
+                  <img
+                    src={team.logo}
+                    alt={`${team.name} logo`}
+                    className="w-12 h-12 rounded-lg object-cover border-2 border-gray-200"
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white"
+                    style={{ backgroundColor: team.color }}
+                  >
+                    {team.abbreviation}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {team.name}
+                  </h3>
+                  <p className="text-sm text-gray-600">{team.abbreviation}</p>
+                </div>
                 <div className="text-right">
                   <div className="text-sm text-gray-500">Avg Rating</div>
                   <div className="text-lg font-bold text-blue-600">

@@ -28,6 +28,7 @@ export async function GET(
         name: true,
         abbreviation: true,
         color: true,
+        logo: true,
         members: {
           select: {
             player: {
@@ -123,6 +124,7 @@ export async function GET(
           name: team.name,
           abbreviation: team.abbreviation,
           color: team.color,
+          logo: team.logo,
           averageRating,
           averageTrend,
           memberCount: processedMembers.length,

@@ -61,6 +61,7 @@ model Team {
   updatedAt              DateTime                @updatedAt
   color                  String                  @default("#3B82F6")
   abbreviation           String?
+  logo                   String?
   draftPicks             DraftPick[]
   members                TeamMember[]
   captain                Player?                 @relation("TeamCaptain", fields: [captainId], references: [id])

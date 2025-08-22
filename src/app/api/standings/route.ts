@@ -6,6 +6,7 @@ interface TeamStanding {
   teamName: string;
   teamAbbreviation: string;
   teamColor: string;
+  teamLogo?: string | null;
   earnedPoints: number;
   projectedPoints: number;
   firstPlaceFinishes: number;
@@ -23,7 +24,7 @@ interface EventResult {
   isProjected: boolean;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Use a single optimized query to get all data at once
     const teamsWithMembers = await prisma.team.findMany({
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
         name: true,
         abbreviation: true,
         color: true,
+        logo: true,
         members: {
           select: {
             player: {
@@ -76,6 +78,7 @@ export async function GET(request: NextRequest) {
       teamName: team.name,
       teamAbbreviation: team.abbreviation || "TBD",
       teamColor: team.color,
+      teamLogo: team.logo,
       earnedPoints: 0,
       projectedPoints: 0,
       firstPlaceFinishes: 0,

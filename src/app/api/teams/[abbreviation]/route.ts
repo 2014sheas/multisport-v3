@@ -18,6 +18,23 @@ export async function GET(
         abbreviation: true,
         color: true,
         captainId: true,
+        logo: true,
+        captain: {
+          select: {
+            id: true,
+            name: true,
+            user: {
+              select: {
+                id: true,
+              },
+            },
+          },
+          where: {
+            user: {
+              isNot: null,
+            },
+          },
+        },
       },
     });
 

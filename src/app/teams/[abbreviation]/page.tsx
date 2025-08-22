@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   Users,
   TrendingUp,
@@ -8,6 +9,7 @@ import {
   Minus,
   Filter,
   Star,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -17,6 +19,14 @@ interface Team {
   abbreviation: string;
   color: string;
   captainId?: string;
+  logo?: string | null;
+  captain?: {
+    id: string;
+    name: string;
+    user?: {
+      id: string;
+    };
+  };
 }
 
 interface Event {
@@ -44,12 +54,14 @@ export default function TeamPage({
 }: {
   params: Promise<{ abbreviation: string }>;
 }) {
+  const { data: session } = useSession();
   const [team, setTeam] = useState<Team | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [abbreviation, setAbbreviation] = useState<string>("");
+  const [canManage, setCanManage] = useState(false);
 
   useEffect(() => {
     const getParams = async () => {
@@ -80,6 +92,15 @@ export default function TeamPage({
       }
       const data = await response.json();
       setTeam(data.team);
+
+      // Check if user can manage this team
+      if (session?.user) {
+        const isCaptain =
+          data.team.captainId &&
+          data.team.captain?.user?.id === session.user.id;
+        const isAdmin = session.user.isAdmin;
+        setCanManage(isCaptain || isAdmin);
+      }
     } catch (error) {
       console.error("Error fetching team data:", error);
     } finally {
@@ -198,12 +219,20 @@ export default function TeamPage({
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="flex items-start justify-between mb-4 sm:mb-6">
             <div className="flex items-center space-x-4">
-              <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold text-white"
-                style={{ backgroundColor: team.color }}
-              >
-                {team.abbreviation}
-              </div>
+              {team.logo ? (
+                <img
+                  src={team.logo}
+                  alt={`${team.name} logo`}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold text-white"
+                  style={{ backgroundColor: team.color }}
+                >
+                  {team.abbreviation}
+                </div>
+              )}
               <div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
                   {team.name}
@@ -221,6 +250,17 @@ export default function TeamPage({
                 </div>
               </div>
             </div>
+
+            {/* Manage Team Button */}
+            {canManage && (
+              <Link
+                href={`/teams/${abbreviation}/manage`}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Manage Team
+              </Link>
+            )}
           </div>
         </div>
       </div>

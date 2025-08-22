@@ -10,6 +10,7 @@ interface TeamStanding {
   teamName: string;
   teamAbbreviation: string;
   teamColor: string;
+  teamLogo?: string | null;
   earnedPoints: number;
   projectedPoints: number;
   firstPlaceFinishes: number;
@@ -195,12 +196,20 @@ export default function HomePage() {
                     className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
                   >
                     <div className="flex items-center space-x-3">
-                      <div
-                        className="flex items-center justify-center w-8 h-8 rounded-full text-white font-bold text-sm"
-                        style={{ backgroundColor: team.teamColor }}
-                      >
-                        {index + 1}
-                      </div>
+                      {team.teamLogo ? (
+                        <img
+                          src={team.teamLogo}
+                          alt={`${team.teamName} logo`}
+                          className="w-8 h-8 rounded-lg object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div
+                          className="flex items-center justify-center w-8 h-8 rounded-full text-white font-bold text-sm"
+                          style={{ backgroundColor: team.teamColor }}
+                        >
+                          {index + 1}
+                        </div>
+                      )}
                       <div>
                         <div className="font-semibold text-gray-900">
                           {team.teamName}
@@ -342,12 +351,20 @@ export default function HomePage() {
                     className="flex items-center justify-between bg-white rounded-lg p-4 shadow-sm"
                   >
                     <div className="flex items-center space-x-4">
-                      <div
-                        className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-lg"
-                        style={{ backgroundColor: team.teamColor }}
-                      >
-                        {index + 1}
-                      </div>
+                      {team.teamLogo ? (
+                        <img
+                          src={team.teamLogo}
+                          alt={`${team.teamName} logo`}
+                          className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div
+                          className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-lg"
+                          style={{ backgroundColor: team.teamColor }}
+                        >
+                          {index + 1}
+                        </div>
+                      )}
                       <div>
                         <div className="font-semibold text-gray-900">
                           {team.teamName}
