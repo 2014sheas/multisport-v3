@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Plus, Edit, Trash2 } from "lucide-react";
+import { Calendar, Plus, Edit, Trash2, CheckCircle } from "lucide-react";
 import AdminGuard from "@/components/AdminGuard";
+import FinalStandingsSelector from "@/components/FinalStandingsSelector";
 
 interface Event {
   id: string;
@@ -20,6 +21,14 @@ interface Event {
   updatedAt: string;
 }
 
+interface Team {
+  id: string;
+  name: string;
+  abbreviation: string;
+  color: string;
+  logo?: string | null;
+}
+
 // Preset point options for 4-team events
 const POINT_PRESETS = [
   { name: "Standard (10, 7, 4, 2)", value: [10, 7, 4, 2] },
@@ -34,9 +43,14 @@ const POINT_PRESETS = [
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [showFinalStandingsSelector, setShowFinalStandingsSelector] =
+    useState(false);
+  const [selectedEventForStandings, setSelectedEventForStandings] =
+    useState<Event | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
     abbreviation: "",
@@ -64,6 +78,7 @@ export default function AdminEventsPage() {
 
   useEffect(() => {
     fetchEvents();
+    fetchTeams();
   }, []);
 
   // Update time remaining every minute for upcoming events
@@ -90,6 +105,16 @@ export default function AdminEventsPage() {
       console.error("Error fetching events:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const response = await fetch("/api/teams");
+      const data = await response.json();
+      setTeams(data.teams);
+    } catch (error) {
+      console.error("Error fetching teams:", error);
     }
   };
 
@@ -189,6 +214,44 @@ export default function AdminEventsPage() {
     } catch (error) {
       console.error("Error deleting event:", error);
     }
+  };
+
+  const handleFinalStandingsSubmit = async (finalStandings: string[]) => {
+    if (!selectedEventForStandings) return;
+
+    try {
+      const response = await fetch(
+        `/api/admin/events/${selectedEventForStandings.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "COMPLETED",
+            finalStandings: finalStandings,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        setShowFinalStandingsSelector(false);
+        setSelectedEventForStandings(null);
+        fetchEvents();
+      }
+    } catch (error) {
+      console.error("Error updating final standings:", error);
+    }
+  };
+
+  const openFinalStandingsSelector = (event: Event) => {
+    setSelectedEventForStandings(event);
+    setShowFinalStandingsSelector(true);
+  };
+
+  const getTeamName = (teamId: string) => {
+    const team = teams.find((t) => t.id === teamId);
+    return team ? `${team.name} (${team.abbreviation})` : `Team ${teamId}`;
   };
 
   const getOrdinalSuffix = (n: number) => {
@@ -410,9 +473,17 @@ export default function AdminEventsPage() {
                     event.finalStandings &&
                     event.finalStandings.length > 0 && (
                       <div>
-                        <p className="text-sm font-medium text-gray-900 mb-2">
-                          Final Standings:
-                        </p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-medium text-gray-900">
+                            Final Standings:
+                          </p>
+                          <button
+                            onClick={() => openFinalStandingsSelector(event)}
+                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Edit Standings
+                          </button>
+                        </div>
                         <div className="space-y-1">
                           {event.finalStandings.map((teamId, index) => (
                             <div
@@ -433,7 +504,7 @@ export default function AdminEventsPage() {
                                 {index + 1}
                               </span>
                               <span className="text-sm text-gray-700">
-                                Team {teamId}
+                                {getTeamName(teamId)}
                               </span>
                               {event.points && event.points[index] && (
                                 <span className="text-xs text-gray-500 ml-auto">
@@ -447,30 +518,202 @@ export default function AdminEventsPage() {
                     )}
 
                   {/* Tournament Bracket Management */}
-                  {event.eventType === "TOURNAMENT" && (
-                    <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-md">
-                      <h4 className="text-sm font-medium text-purple-800 mb-3">
-                        Tournament Bracket Management
-                      </h4>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() =>
-                            window.open(
-                              `/events/${event.abbreviation}`,
-                              "_blank"
-                            )
-                          }
-                          className="inline-flex items-center px-3 py-1.5 border border-purple-300 shadow-sm text-xs font-medium rounded text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                        >
-                          Manage Bracket
-                        </button>
-                        <span className="text-xs text-purple-600 self-center">
-                          Open event page to manage tournament seeding and
-                          brackets
-                        </span>
+                  {event.eventType === "TOURNAMENT" &&
+                    event.status === "UPCOMING" && (
+                      <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-md">
+                        <h4 className="text-sm font-medium text-purple-800 mb-3">
+                          Start Tournament Event
+                        </h4>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(
+                                  `/api/admin/events/${event.id}`,
+                                  {
+                                    method: "PUT",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      status: "IN_PROGRESS",
+                                    }),
+                                  }
+                                );
+                                if (response.ok) {
+                                  fetchEvents();
+                                }
+                              } catch (error) {
+                                console.error("Error starting event:", error);
+                              }
+                            }}
+                            className="inline-flex items-center px-3 py-1.5 border border-purple-300 shadow-sm text-xs font-medium rounded text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                          >
+                            <Calendar className="w-4 h-4 mr-1" />
+                            Start Event
+                          </button>
+                          <span className="text-xs text-purple-600 self-center">
+                            Mark this tournament event as in progress
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                  {/* Tournament Bracket Management */}
+                  {event.eventType === "TOURNAMENT" &&
+                    event.status === "IN_PROGRESS" && (
+                      <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-md">
+                        <h4 className="text-sm font-medium text-purple-800 mb-3">
+                          Tournament Bracket Management
+                        </h4>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() =>
+                              window.open(
+                                `/events/${event.abbreviation}`,
+                                "_blank"
+                              )
+                            }
+                            className="inline-flex items-center px-3 py-1.5 border border-purple-300 shadow-sm text-xs font-medium rounded text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                          >
+                            Manage Bracket
+                          </button>
+                          <span className="text-xs text-purple-600 self-center">
+                            Open event page to manage tournament seeding and
+                            brackets
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Scored Event Management */}
+                  {event.eventType === "SCORED" &&
+                    event.status === "UPCOMING" && (
+                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                        <h4 className="text-sm font-medium text-blue-800 mb-3">
+                          Start Scored Event
+                        </h4>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(
+                                  `/api/admin/events/${event.id}`,
+                                  {
+                                    method: "PUT",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      status: "IN_PROGRESS",
+                                    }),
+                                  }
+                                );
+                                if (response.ok) {
+                                  fetchEvents();
+                                }
+                              } catch (error) {
+                                console.error("Error starting event:", error);
+                              }
+                            }}
+                            className="inline-flex items-center px-3 py-1.5 border border-blue-300 shadow-sm text-xs font-medium rounded text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          >
+                            <Calendar className="w-4 h-4 mr-1" />
+                            Start Event
+                          </button>
+                          <span className="text-xs text-blue-600 self-center">
+                            Mark this scored event as in progress
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Scored Event Completion */}
+                  {event.eventType === "SCORED" &&
+                    event.status === "IN_PROGRESS" && (
+                      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-md">
+                        <h4 className="text-sm font-medium text-green-800 mb-3">
+                          Complete Scored Event
+                        </h4>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openFinalStandingsSelector(event)}
+                            className="inline-flex items-center px-3 py-1.5 border border-green-300 shadow-sm text-xs font-medium rounded text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Select Final Standings
+                          </button>
+                          <span className="text-xs text-green-600 self-center">
+                            Select final standings to complete this scored event
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Combined Team Event Management */}
+                  {event.eventType === "COMBINED_TEAM" &&
+                    event.status === "UPCOMING" && (
+                      <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-md">
+                        <h4 className="text-sm font-medium text-indigo-800 mb-3">
+                          Start Combined Team Event
+                        </h4>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(
+                                  `/api/admin/events/${event.id}`,
+                                  {
+                                    method: "PUT",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      status: "IN_PROGRESS",
+                                    }),
+                                  }
+                                );
+                                if (response.ok) {
+                                  fetchEvents();
+                                }
+                              } catch (error) {
+                                console.error("Error starting event:", error);
+                              }
+                            }}
+                            className="inline-flex items-center px-3 py-1.5 border border-indigo-300 shadow-sm text-xs font-medium rounded text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            <Calendar className="w-4 h-4 mr-1" />
+                            Start Event
+                          </button>
+                          <span className="text-xs text-indigo-600 self-center">
+                            Mark this combined team event as in progress
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Combined Team Event Completion */}
+                  {event.eventType === "COMBINED_TEAM" &&
+                    event.status === "IN_PROGRESS" && (
+                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                        <h4 className="text-sm font-medium text-blue-800 mb-3">
+                          Complete Combined Team Event
+                        </h4>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openFinalStandingsSelector(event)}
+                            className="inline-flex items-center px-3 py-1.5 border border-blue-300 shadow-sm text-xs font-medium rounded text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Select Final Standings
+                          </button>
+                          <span className="text-xs text-blue-600 self-center">
+                            Select final standings to complete this combined
+                            team event
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                   {/* Actions */}
                   <div className="flex justify-end space-x-2 pt-4 border-t border-gray-100">
@@ -964,6 +1207,29 @@ export default function AdminEventsPage() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Final Standings Selector Modal */}
+        {showFinalStandingsSelector && selectedEventForStandings && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <FinalStandingsSelector
+                  eventId={selectedEventForStandings.id}
+                  eventType={selectedEventForStandings.eventType}
+                  currentFinalStandings={
+                    selectedEventForStandings.finalStandings
+                  }
+                  points={selectedEventForStandings.points}
+                  onFinalStandingsSubmit={handleFinalStandingsSubmit}
+                  onCancel={() => {
+                    setShowFinalStandingsSelector(false);
+                    setSelectedEventForStandings(null);
+                  }}
+                />
               </div>
             </div>
           </div>
