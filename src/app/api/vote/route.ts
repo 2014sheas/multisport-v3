@@ -3,26 +3,29 @@ import { prisma } from "@/lib/prisma";
 
 // Elo rating calculation function
 function calculateEloChange(winnerRating: number, loserRating: number) {
+  const K_FACTOR = 800; // Much higher K-factor for very dynamic ratings on 0-9999 scale
+  const RATING_SCALE = 750; // Adjusted scale factor for 0-9999 range
+
   const expectedWinnerScore =
-    1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
+    1 / (1 + Math.pow(10, (loserRating - winnerRating) / RATING_SCALE));
   const expectedLoserScore = 1 - expectedWinnerScore;
 
   const actualWinnerScore = 1;
   const actualLoserScore = 0;
 
-  const kFactor = 32; // Standard K-factor for Elo calculations
-
   const winnerChange = Math.round(
-    kFactor * (actualWinnerScore - expectedWinnerScore)
+    K_FACTOR * (actualWinnerScore - expectedWinnerScore)
   );
   const loserChange = Math.round(
-    kFactor * (actualLoserScore - expectedLoserScore)
+    K_FACTOR * (actualLoserScore - expectedLoserScore)
   );
 
   return { winnerChange, loserChange };
 }
 
 export async function POST(request: NextRequest) {
+  const BASE_RATING = 5000; // Middle of the 0-9999 scale
+
   try {
     // Remove authentication requirement - anyone can vote
     const { keepId, tradeId, cutId, eventId, voterSession } =
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
           create: {
             playerId: keepId,
             eventId: eventId,
-            rating: 5000,
+            rating: BASE_RATING,
           },
         }),
         prisma.eventRating.upsert({
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
           create: {
             playerId: tradeId,
             eventId: eventId,
-            rating: 5000,
+            rating: BASE_RATING,
           },
         }),
         prisma.eventRating.upsert({
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest) {
           create: {
             playerId: cutId,
             eventId: eventId,
-            rating: 5000,
+            rating: BASE_RATING,
           },
         }),
       ]);
