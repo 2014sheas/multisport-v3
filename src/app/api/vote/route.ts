@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 
 // Elo rating calculation function
 function calculateEloChange(winnerRating: number, loserRating: number) {
-  const K_FACTOR = 800; // Much higher K-factor for very dynamic ratings on 0-9999 scale
-  const RATING_SCALE = 750; // Adjusted scale factor for 0-9999 range
+  const K_FACTOR = 250; // Much higher K-factor for very dynamic ratings on 0-9999 scale
+  const RATING_SCALE = 400; // Adjusted scale factor for 0-9999 range
 
   const expectedWinnerScore =
     1 / (1 + Math.pow(10, (loserRating - winnerRating) / RATING_SCALE));
