@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Clock, Calendar, Users, Trophy, TrendingUp } from "lucide-react";
+import {
+  Clock,
+  Calendar,
+  Users,
+  Trophy,
+  TrendingUp,
+  Star,
+  PartyPopper,
+} from "lucide-react";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
 
 interface TeamStanding {
@@ -53,6 +61,7 @@ export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [gamesStarted, setGamesStarted] = useState(false);
+  const [allGamesComplete, setAllGamesComplete] = useState(false);
 
   // Memoize expensive calculations
   const currentOrRecentEvent = useMemo(() => {
@@ -80,6 +89,20 @@ export default function HomePage() {
 
     return null;
   }, [events]);
+
+  // Check if all games are complete
+  const checkAllGamesComplete = useCallback(() => {
+    if (events.length === 0) return false;
+    const allComplete = events.every((event) => event.status === "COMPLETED");
+    setAllGamesComplete(allComplete);
+    return allComplete;
+  }, [events]);
+
+  // Get the winner (team with most points)
+  const winner = useMemo(() => {
+    if (standings.length === 0) return null;
+    return standings[0]; // Standings are already sorted by earned points
+  }, [standings]);
 
   useEffect(() => {
     if (!eventTime) return;
@@ -265,6 +288,11 @@ export default function HomePage() {
     fetchStandingsAndEvents();
   }, [fetchEventTime, fetchStandingsAndEvents]);
 
+  useEffect(() => {
+    // Check if all games are complete whenever events change
+    checkAllGamesComplete();
+  }, [events, checkAllGamesComplete]);
+
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto text-center py-12">
@@ -283,7 +311,200 @@ export default function HomePage() {
         <p className="text-lg text-gray-600">Dudley Takeover</p>
       </div>
 
-      {!gamesStarted ? (
+      {allGamesComplete ? (
+        /* Games Complete - Winner Celebration Section */
+        <>
+          {/* Winner Announcement */}
+          <div className="bg-gradient-to-br from-yellow-50 to-amber-100 rounded-2xl p-8 mb-8 text-center">
+            {winner && (
+              <div className="bg-white rounded-xl p-6 shadow-lg mb-6">
+                <div className="text-6xl mb-4">🏆</div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Congratulations to the Champions!
+                </h3>
+                <div className="flex items-center justify-center space-x-4 mb-4">
+                  {winner.teamLogo ? (
+                    <img
+                      src={winner.teamLogo}
+                      alt={`${winner.teamName} logo`}
+                      className="w-16 h-16 rounded-lg object-cover border-2 border-yellow-400 shadow-lg"
+                    />
+                  ) : (
+                    <div
+                      className="flex items-center justify-center w-16 h-16 rounded-full text-white font-bold text-2xl shadow-lg"
+                      style={{ backgroundColor: winner.teamColor }}
+                    >
+                      {winner.teamAbbreviation.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-3xl font-bold text-gray-900">
+                      {winner.teamName}
+                    </div>
+                    <div className="text-lg text-gray-600">
+                      {winner.teamAbbreviation}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {winner.earnedPoints} Total Points
+                </div>
+                <div className="text-sm text-gray-500 mt-2">
+                  {winner.firstPlaceFinishes} 🥇 {winner.secondPlaceFinishes} 🥈
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Final Standings */}
+          <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-8 mb-8">
+            <div className="flex items-center justify-center mb-6">
+              <Trophy className="w-8 h-8 text-green-600 mr-3" />
+              <h2 className="text-2xl font-bold text-gray-900">
+                🏁 Final Standings
+              </h2>
+            </div>
+
+            {standings.length > 0 ? (
+              <div className="space-y-3">
+                {standings.map((team, index) => (
+                  <div
+                    key={team.teamId}
+                    className={`flex items-center justify-between rounded-lg p-4 shadow-sm ${
+                      index === 0
+                        ? "bg-gradient-to-r from-yellow-50 to-amber-100 border-2 border-yellow-300"
+                        : index === 1
+                        ? "bg-gradient-to-r from-gray-50 to-slate-100 border-2 border-gray-300"
+                        : index === 2
+                        ? "bg-gradient-to-r from-orange-50 to-amber-100 border-2 border-orange-300"
+                        : "bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-lg">
+                        {index === 0
+                          ? "🥇"
+                          : index === 1
+                          ? "🥈"
+                          : index === 2
+                          ? "🥉"
+                          : `${index + 1}`}
+                      </div>
+                      {team.teamLogo ? (
+                        <img
+                          src={team.teamLogo}
+                          alt={`${team.teamName} logo`}
+                          className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div
+                          className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-lg"
+                          style={{ backgroundColor: team.teamColor }}
+                        >
+                          {team.teamAbbreviation.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-gray-900">
+                          {team.teamName}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {team.teamAbbreviation}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-gray-900 text-lg">
+                        {team.earnedPoints} pts
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {team.firstPlaceFinishes} 🥇 {team.secondPlaceFinishes}{" "}
+                        🥈
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-600">
+                No standings available.
+              </p>
+            )}
+          </div>
+
+          {/* Event Results Summary */}
+          {events.filter((e) => e.status === "COMPLETED").length > 0 && (
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-100 rounded-2xl p-8 mb-8">
+              <div className="flex items-center justify-center mb-6">
+                <TrendingUp className="w-8 h-8 text-purple-600 mr-3" />
+                <h2 className="text-2xl font-bold text-gray-900">
+                  📊 Event Results Summary
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {events
+                  .filter((event) => event.status === "COMPLETED")
+                  .map((event) => (
+                    <div
+                      key={event.id}
+                      className="bg-white rounded-lg p-4 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">
+                            {event.name}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {event.location || "Location TBD"}
+                          </p>
+                        </div>
+                        <div className="text-2xl">{event.symbol}</div>
+                      </div>
+
+                      {event.finalStandings &&
+                        event.finalStandings.length > 0 && (
+                          <div className="space-y-2">
+                            {event.finalStandings
+                              .slice(0, 3)
+                              .map((teamId, index) => {
+                                const team = standings.find(
+                                  (s) => s.teamId === teamId
+                                );
+                                if (!team) return null;
+
+                                return (
+                                  <div
+                                    key={teamId}
+                                    className="flex items-center justify-between bg-gray-50 rounded p-2"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm">
+                                        {index === 0
+                                          ? "🥇"
+                                          : index === 1
+                                          ? "🥈"
+                                          : "🥉"}
+                                      </span>
+                                      <span className="text-sm font-medium text-gray-900">
+                                        {team.teamAbbreviation}
+                                      </span>
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      {event.points[index] || 0} pts
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </>
+      ) : !gamesStarted ? (
         /* Pre-Event Countdown Section */
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 mb-8 text-center">
           <div className="flex items-center justify-center mb-4">
@@ -332,7 +553,7 @@ export default function HomePage() {
           )}
         </div>
       ) : (
-        /* Post-Event Content */
+        /* Games In Progress Section */
         <>
           {/* Current Standings */}
           <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-8 mb-8">
@@ -484,7 +705,19 @@ export default function HomePage() {
       </div>
 
       {/* Dynamic Message */}
-      {!gamesStarted ? (
+      {allGamesComplete ? (
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6 text-center">
+          <div className="flex items-center justify-center mb-3">
+            <h3 className="text-xl font-semibold text-yellow-800">
+              Event Complete
+            </h3>
+          </div>
+          <p className="text-yellow-700 mb-3">
+            The 2025 Multisport Games have concluded! Thank you to all who made
+            this year&apos;s event possible, we hope to see you back next year!
+          </p>
+        </div>
+      ) : !gamesStarted ? (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
           <h3 className="text-lg font-semibold text-yellow-800 mb-2">
             🏆 Get Ready!
