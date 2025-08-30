@@ -497,6 +497,7 @@ export default function TournamentBracket({
                         isAdmin={isAdmin}
                         onMatchClick={handleMatchClick}
                         selectedMatch={selectedMatch}
+                        eventId={eventId}
                       />
                     </div>
                   ))}

@@ -27,6 +27,18 @@ export async function GET(
                 name: true,
                 abbreviation: true,
                 color: true,
+                members: {
+                  select: {
+                    player: {
+                      select: {
+                        eventRatings: {
+                          where: { eventId },
+                          select: { rating: true },
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -35,12 +47,50 @@ export async function GET(
           include: {
             team1: {
               include: {
-                team: true,
+                team: {
+                  select: {
+                    id: true,
+                    name: true,
+                    abbreviation: true,
+                    color: true,
+                    members: {
+                      select: {
+                        player: {
+                          select: {
+                            eventRatings: {
+                              where: { eventId },
+                              select: { rating: true },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
             team2: {
               include: {
-                team: true,
+                team: {
+                  select: {
+                    id: true,
+                    name: true,
+                    abbreviation: true,
+                    color: true,
+                    members: {
+                      select: {
+                        player: {
+                          select: {
+                            eventRatings: {
+                              where: { eventId },
+                              select: { rating: true },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
             // Include referenced matches to get their match numbers and teams
@@ -49,12 +99,50 @@ export async function GET(
                 matchNumber: true,
                 team1: {
                   include: {
-                    team: true,
+                    team: {
+                      select: {
+                        id: true,
+                        name: true,
+                        abbreviation: true,
+                        color: true,
+                        members: {
+                          select: {
+                            player: {
+                              select: {
+                                eventRatings: {
+                                  where: { eventId },
+                                  select: { rating: true },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
                   },
                 },
                 team2: {
                   include: {
-                    team: true,
+                    team: {
+                      select: {
+                        id: true,
+                        name: true,
+                        abbreviation: true,
+                        color: true,
+                        members: {
+                          select: {
+                            player: {
+                              select: {
+                                eventRatings: {
+                                  where: { eventId },
+                                  select: { rating: true },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -64,12 +152,50 @@ export async function GET(
                 matchNumber: true,
                 team1: {
                   include: {
-                    team: true,
+                    team: {
+                      select: {
+                        id: true,
+                        name: true,
+                        abbreviation: true,
+                        color: true,
+                        members: {
+                          select: {
+                            player: {
+                              select: {
+                                eventRatings: {
+                                  where: { eventId },
+                                  select: { rating: true },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
                   },
                 },
                 team2: {
                   include: {
-                    team: true,
+                    team: {
+                      select: {
+                        id: true,
+                        name: true,
+                        abbreviation: true,
+                        color: true,
+                        members: {
+                          select: {
+                            player: {
+                              select: {
+                                eventRatings: {
+                                  where: { eventId },
+                                  select: { rating: true },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
                   },
                 },
               },

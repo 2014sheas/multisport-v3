@@ -1,4 +1,8 @@
 import React from "react";
+import {
+  getBothTeamWinProbabilities,
+  calculateTeamAverageRating,
+} from "@/lib/elo-utils";
 
 interface Participant {
   team: {
@@ -7,6 +11,11 @@ interface Participant {
     abbreviation: string;
     color: string;
     seed?: number;
+    members?: Array<{
+      player: {
+        eventRatings: Array<{ rating: number }>;
+      };
+    }>;
   };
 }
 
@@ -54,6 +63,7 @@ interface GameCardProps {
   isAdmin: boolean;
   onMatchClick: (matchId: string) => void;
   selectedMatch: string | null;
+  eventId: string;
 }
 
 // Helper function to generate placeholder text based on referenced match
@@ -86,6 +96,40 @@ function getPlaceholderText(
   return `${isWinner ? "Winner" : "Loser"} of G${gameNumber}`;
 }
 
+// Helper function to calculate team average rating
+function getTeamAverageRating(team: Participant["team"]): number {
+  if (!team.members || team.members.length === 0) return 5000;
+
+  const ratings = team.members
+    .map((member) => {
+      const eventRating = member.player.eventRatings[0];
+      return eventRating?.rating || 5000;
+    })
+    .filter((rating) => rating > 0);
+
+  return calculateTeamAverageRating(ratings);
+}
+
+// Helper function to get win probability display
+function getWinProbabilityDisplay(
+  team1: Participant["team"],
+  team2: Participant["team"]
+) {
+  if (!team1 || !team2) return null;
+
+  const team1Rating = getTeamAverageRating(team1);
+  const team2Rating = getTeamAverageRating(team2);
+
+  const probabilities = getBothTeamWinProbabilities(team1Rating, team2Rating);
+
+  return {
+    team1Rating,
+    team2Rating,
+    team1WinPercentage: probabilities.team1WinPercentage,
+    team2WinPercentage: probabilities.team2WinPercentage,
+  };
+}
+
 export default function GameCard({
   match,
   isAdmin,
@@ -101,6 +145,10 @@ export default function GameCard({
   const hasPartialTeams = (team1 && !team2) || (!team1 && team2);
   const isFullyUndetermined = !team1 && !team2;
   const isUndetermined = isFullyUndetermined || hasPartialTeams;
+
+  // Get win probabilities for scheduled matches
+  const winProbabilityData =
+    team1 && team2 ? getWinProbabilityDisplay(team1, team2) : null;
 
   // If it's any kind of undetermined game, use the regular card layout
   if (isUndetermined) {
@@ -279,10 +327,19 @@ export default function GameCard({
               </div>
             )}
           </div>
-          {(match.score || (team1 && team2)) && (
-            <span className="text-xs md:text-sm font-bold text-gray-900 ml-2">
-              {match.score ? match.score[0] : 0}
-            </span>
+          {match.status === "SCHEDULED" && winProbabilityData ? (
+            <div className="flex items-center space-x-1 ml-2">
+              <span className="text-xs md:text-sm font-bold text-blue-600">
+                {winProbabilityData.team1WinPercentage}%
+              </span>
+              <span className="text-xs text-blue-500">📊</span>
+            </div>
+          ) : (
+            (match.score || (team1 && team2)) && (
+              <span className="text-xs md:text-sm font-bold text-gray-900 ml-2">
+                {match.score ? match.score[0] : 0}
+              </span>
+            )
           )}
         </div>
 
@@ -302,10 +359,19 @@ export default function GameCard({
               </div>
             )}
           </div>
-          {(match.score || (team1 && team2)) && (
-            <span className="text-xs md:text-sm font-bold text-gray-900 ml-2">
-              {match.score ? match.score[1] : 0}
-            </span>
+          {match.status === "SCHEDULED" && winProbabilityData ? (
+            <div className="flex items-center space-x-1 ml-2">
+              <span className="text-xs md:text-sm font-bold text-blue-600">
+                {winProbabilityData.team2WinPercentage}%
+              </span>
+              <span className="text-xs text-blue-500">📊</span>
+            </div>
+          ) : (
+            (match.score || (team1 && team2)) && (
+              <span className="text-xs md:text-sm font-bold text-gray-900 ml-2">
+                {match.score ? match.score[1] : 0}
+              </span>
+            )
           )}
         </div>
       </div>
