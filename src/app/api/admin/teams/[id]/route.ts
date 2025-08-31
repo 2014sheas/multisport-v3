@@ -65,6 +65,16 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ team });
     }
 
+    // Handle team year update
+    if (updates.year !== undefined) {
+      const team = await prisma.team.update({
+        where: { id },
+        data: { year: updates.year },
+      });
+
+      return NextResponse.json({ team });
+    }
+
     // Handle team name and color update together
     if (updates.name !== undefined && updates.color !== undefined) {
       if (!updates.name.trim()) {
@@ -89,17 +99,30 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
     // Handle captain assignment
     if (updates.captainId !== undefined) {
-      // Verify the captain is a player on this team
+      // Get the team to check its year
+      const team = await prisma.team.findUnique({
+        where: { id },
+        select: { year: true },
+      });
+
+      if (!team) {
+        return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      }
+
+      // Verify the captain is a player on this team for the current year
       const teamMember = await prisma.teamMember.findFirst({
         where: {
           teamId: id,
           playerId: updates.captainId,
+          year: team.year,
         },
       });
 
       if (!teamMember) {
         return NextResponse.json(
-          { error: "Captain must be a player on this team" },
+          {
+            error: "Captain must be a player on this team for the current year",
+          },
           { status: 400 }
         );
       }
@@ -116,12 +139,12 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
         );
       }
 
-      const team = await prisma.team.update({
+      const updatedTeam = await prisma.team.update({
         where: { id },
         data: { captainId: player.id },
       });
 
-      return NextResponse.json({ team });
+      return NextResponse.json({ team: updatedTeam });
     }
 
     return NextResponse.json(

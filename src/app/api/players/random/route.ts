@@ -12,6 +12,13 @@ export async function GET(request: NextRequest) {
     const playerCount = parseInt(count);
     const excludePlayerIds = excludeIds ? excludeIds.split(",") : [];
 
+    // Get the current active year
+    const currentYear = await prisma.year.findFirst({
+      where: { isActive: true },
+      select: { year: true },
+    });
+    const activeYear = currentYear?.year || new Date().getFullYear();
+
     // Get the total count of active players
     const totalActivePlayers = await prisma.player.count({
       where: { isActive: true },
@@ -99,8 +106,8 @@ export async function GET(request: NextRequest) {
             t.abbreviation as "teamAbbreviation"
           FROM players p
           LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = $1
-          LEFT JOIN team_members tm ON p.id = tm."playerId"
-          LEFT JOIN teams t ON tm."teamId" = t.id
+          LEFT JOIN team_members tm ON p.id = tm."playerId" AND tm.year = ${activeYear}
+          LEFT JOIN teams t ON tm."teamId" = t.id AND t.year = ${activeYear}
           WHERE p."isActive" = true
           ${excludeClause}
           ORDER BY RANDOM()
@@ -137,8 +144,8 @@ export async function GET(request: NextRequest) {
             t.abbreviation as "teamAbbreviation"
           FROM players p
           LEFT JOIN event_ratings er ON p.id = er."playerId" AND er."eventId" = $1
-          LEFT JOIN team_members tm ON p.id = tm."playerId"
-          LEFT JOIN teams t ON tm."teamId" = t.id
+          LEFT JOIN team_members tm ON p.id = tm."playerId" AND tm.year = ${activeYear}
+          LEFT JOIN teams t ON tm."teamId" = t.id AND t.year = ${activeYear}
           WHERE p."isActive" = true
           ${excludeClause}
           ORDER BY RANDOM()
@@ -195,8 +202,8 @@ export async function GET(request: NextRequest) {
             t.color as "teamColor",
             t.abbreviation as "teamAbbreviation"
           FROM players p
-          LEFT JOIN team_members tm ON p.id = tm."playerId"
-          LEFT JOIN teams t ON tm."teamId" = t.id
+          LEFT JOIN team_members tm ON p.id = tm."playerId" AND tm.year = ${activeYear}
+          LEFT JOIN teams t ON tm."teamId" = t.id AND t.year = ${activeYear}
           WHERE p."isActive" = true
           ${excludeClause}
           ORDER BY RANDOM()
@@ -230,8 +237,8 @@ export async function GET(request: NextRequest) {
             t.color as "teamColor",
             t.abbreviation as "teamAbbreviation"
           FROM players p
-          LEFT JOIN team_members tm ON p.id = tm."playerId"
-          LEFT JOIN teams t ON tm."teamId" = t.id
+          LEFT JOIN team_members tm ON p.id = tm."playerId" AND tm.year = ${activeYear}
+          LEFT JOIN teams t ON tm."teamId" = t.id AND t.year = ${activeYear}
           WHERE p."isActive" = true
           ${excludeClause}
           ORDER BY RANDOM()

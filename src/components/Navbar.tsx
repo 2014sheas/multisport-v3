@@ -94,7 +94,7 @@ export default function Navbar() {
                   <User className="w-4 h-4 mr-1" />
                   Profile
                 </Link>
-                {(session.user as any)?.isAdmin && (
+                {(session.user as { isAdmin?: boolean })?.isAdmin && (
                   <Link
                     href="/admin/users"
                     className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -229,7 +229,7 @@ export default function Navbar() {
                   <User className="w-4 h-4 inline mr-2" />
                   Profile
                 </Link>
-                {(session.user as any)?.isAdmin && (
+                {(session.user as { isAdmin?: boolean })?.isAdmin && (
                   <Link
                     href="/admin/users"
                     className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"

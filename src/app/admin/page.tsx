@@ -96,6 +96,20 @@ export default function AdminDashboard() {
       color: "bg-indigo-500",
     },
     {
+      name: "Manage Years",
+      description: "Manage years and historical data",
+      href: "/admin/years",
+      icon: Calendar,
+      color: "bg-red-500",
+    },
+    {
+      name: "View History",
+      description: "View previous years' results and statistics",
+      href: "/admin/history",
+      icon: Calendar,
+      color: "bg-emerald-500",
+    },
+    {
       name: "System Settings",
       description: "Configure system preferences",
       href: "/admin/settings",

@@ -74,6 +74,14 @@ export async function GET(request: NextRequest) {
     const eventId = searchParams.get("eventId");
     const useFastPath = searchParams.get("fast") === "true";
 
+    // Get the current active year
+    // const currentYear = await prisma.year.findFirst({
+    //   where: { isActive: true },
+    //   select: { year: true },
+    // });
+    // const activeYear = currentYear?.year || new Date().getFullYear();
+    const activeYear = new Date().getFullYear(); // Temporarily use current year
+
     // Ultra-fast path using materialized view (recommended for production)
     if (useFastPath) {
       console.log("🚀 Using ultra-fast materialized view path");
@@ -220,6 +228,7 @@ export async function GET(request: NextRequest) {
         prisma.team.findMany({
           where: {
             captainId: { in: playerIds },
+            year: activeYear, // Filter by current year
           },
           select: {
             id: true,
@@ -231,6 +240,7 @@ export async function GET(request: NextRequest) {
         prisma.teamMember.findMany({
           where: {
             playerId: { in: playerIds },
+            year: activeYear, // Filter by current year
           },
           select: {
             playerId: true,
@@ -420,6 +430,7 @@ export async function GET(request: NextRequest) {
         prisma.team.findMany({
           where: {
             captainId: { in: playerIds },
+            year: activeYear, // Filter by current year
           },
           select: {
             id: true,
@@ -431,6 +442,7 @@ export async function GET(request: NextRequest) {
         prisma.teamMember.findMany({
           where: {
             playerId: { in: playerIds },
+            year: activeYear, // Filter by current year
           },
           select: {
             playerId: true,

@@ -21,9 +21,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const yearParam = searchParams.get("year");
+    const year = yearParam ? parseInt(yearParam) : undefined;
+
     const teams = await prisma.team.findMany({
+      where: year ? { year } : {},
       include: {
         members: {
+          where: year ? { year } : {},
           include: {
             player: {
               select: {
@@ -33,6 +39,7 @@ export async function GET(request: NextRequest) {
                 experience: true,
                 wins: true,
                 eventRatings: {
+                  where: year ? { event: { year } } : {},
                   select: {
                     rating: true,
                   },
@@ -49,6 +56,7 @@ export async function GET(request: NextRequest) {
             experience: true,
             wins: true,
             eventRatings: {
+              where: year ? { event: { year } } : {},
               select: {
                 rating: true,
               },
@@ -56,6 +64,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
+      orderBy: { name: "asc" },
     });
 
     const formattedTeams = teams.map((team) => ({
@@ -63,6 +72,7 @@ export async function GET(request: NextRequest) {
       name: team.name,
       color: team.color,
       abbreviation: team.abbreviation,
+      year: team.year,
       captain: team.captain
         ? {
             id: team.captain.id,
@@ -125,7 +135,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, captainId } = await request.json();
+    const { name, captainId, year } = await request.json();
 
     if (!name) {
       return NextResponse.json(
@@ -134,11 +144,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get the current active year if none specified
+    let teamYear = year;
+    if (!teamYear) {
+      const activeYear = await prisma.year.findFirst({
+        where: { isActive: true },
+        select: { year: true },
+      });
+      teamYear = activeYear?.year || new Date().getFullYear();
+    }
+
     const team = await prisma.team.create({
       data: {
         name,
         captainId: captainId || null,
         eloRating: 5000,
+        year: teamYear,
       },
     });
 

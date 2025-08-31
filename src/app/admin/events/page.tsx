@@ -17,6 +17,7 @@ interface Event {
   location: string;
   points: number[];
   finalStandings: string[] | null;
+  year: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +28,11 @@ interface Team {
   abbreviation: string;
   color: string;
   logo?: string | null;
+}
+
+interface Year {
+  id: string;
+  year: number;
 }
 
 // Preset point options for 4-team events
@@ -44,6 +50,10 @@ const POINT_PRESETS = [
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [years, setYears] = useState<Year[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -62,6 +72,7 @@ export default function AdminEventsPage() {
     location: "",
     points: [10, 7, 4, 2] as number[],
     finalStandings: [] as string[],
+    year: new Date().getFullYear(),
   });
   const [formData, setFormData] = useState({
     name: "",
@@ -74,12 +85,14 @@ export default function AdminEventsPage() {
     location: "",
     points: [10, 7, 4, 2] as number[],
     finalStandings: [] as string[],
+    year: new Date().getFullYear(),
   });
 
   useEffect(() => {
     fetchEvents();
     fetchTeams();
-  }, []);
+    fetchYears();
+  }, [selectedYear]);
 
   // Update time remaining every minute for upcoming events
   useEffect(() => {
@@ -93,7 +106,7 @@ export default function AdminEventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch("/api/admin/events");
+      const response = await fetch(`/api/admin/events?year=${selectedYear}`);
       const data = await response.json();
       // Sort events by start time (earliest first)
       const sortedEvents = data.events.sort(
@@ -115,6 +128,16 @@ export default function AdminEventsPage() {
       setTeams(data.teams);
     } catch (error) {
       console.error("Error fetching teams:", error);
+    }
+  };
+
+  const fetchYears = async () => {
+    try {
+      const response = await fetch("/api/admin/years");
+      const data = await response.json();
+      setYears(data.years || []);
+    } catch (error) {
+      console.error("Error fetching years:", error);
     }
   };
 
@@ -142,6 +165,7 @@ export default function AdminEventsPage() {
           location: "",
           points: [10, 7, 4, 2],
           finalStandings: [],
+          year: new Date().getFullYear(),
         });
         fetchEvents();
       }
@@ -176,6 +200,7 @@ export default function AdminEventsPage() {
           location: "",
           points: [10, 7, 4, 2],
           finalStandings: [],
+          year: new Date().getFullYear(),
         });
         fetchEvents();
       }
@@ -197,6 +222,7 @@ export default function AdminEventsPage() {
       location: event.location,
       points: event.points,
       finalStandings: event.finalStandings || [],
+      year: event.year,
     });
   };
 
@@ -320,7 +346,33 @@ export default function AdminEventsPage() {
     <AdminGuard>
       <div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Event Management</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Event Management
+            </h1>
+            <div className="flex items-center space-x-4 mt-2">
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4 text-gray-600" />
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {years.map((year) => (
+                    <option key={year.id} value={year.year}>
+                      {year.year}{" "}
+                      {year.year === new Date().getFullYear()
+                        ? "(Current)"
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <span className="text-sm text-gray-500">
+                Viewing events for {selectedYear}
+              </span>
+            </div>
+          </div>
           <button
             onClick={() => setShowAddForm(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
@@ -961,6 +1013,30 @@ export default function AdminEventsPage() {
                         ))}
                       </div>
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Year
+                      </label>
+                      <select
+                        value={formData.year}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            year: parseInt(e.target.value),
+                          })
+                        }
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {years.map((year) => (
+                          <option key={year.id} value={year.year}>
+                            {year.year}{" "}
+                            {year.year === new Date().getFullYear()
+                              ? "(Current)"
+                              : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="flex justify-end space-x-3 mt-6">
                     <button
@@ -1189,6 +1265,30 @@ export default function AdminEventsPage() {
                           </span>
                         ))}
                       </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Year
+                      </label>
+                      <select
+                        value={editFormData.year}
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            year: parseInt(e.target.value),
+                          })
+                        }
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {years.map((year) => (
+                          <option key={year.id} value={year.year}>
+                            {year.year}{" "}
+                            {year.year === new Date().getFullYear()
+                              ? "(Current)"
+                              : ""}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div className="flex justify-end space-x-3 mt-6">

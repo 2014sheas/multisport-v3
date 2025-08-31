@@ -21,9 +21,9 @@ model User {
   image                   String?
   accounts                Account[]
   emailVerificationTokens EmailVerificationToken[]
+  games                   Game[]                   @relation("GameScorekeeper")
   sessions                Session[]
   player                  Player?                  @relation(fields: [playerId], references: [id])
-  games                   Game[]                   @relation("GameScorekeeper")
 
   @@map("users")
 }
@@ -59,19 +59,21 @@ model Team {
   name                   String
   captainId              String?
   eloRating              Int                     @default(5000)
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
-  color                   String                  @default("#3B82F6")
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  color                  String                  @default("#3B82F6")
   abbreviation           String?
   logo                   String?
+  year                   Int?                    @default(2025)
   draftPicks             DraftPick[]
+  gamesAsTeam1           Game[]                  @relation("Team1Games")
+  gamesAsTeam2           Game[]                  @relation("Team2Games")
   members                TeamMember[]
   captain                Player?                 @relation("TeamCaptain", fields: [captainId], references: [id])
   tournamentParticipants TournamentParticipant[]
-  gamesAsTeam1           Game[]                  @relation("Team1Games")
-  gamesAsTeam2           Game[]                  @relation("Team2Games")
 
   @@index([captainId, id], map: "teams_captain_id_idx")
+  @@index([year])
   @@map("teams")
 }
 
@@ -79,6 +81,7 @@ model TeamMember {
   teamId   String
   playerId String
   joinedAt DateTime @default(now())
+  year     Int?     @default(2025)
   player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
@@ -86,6 +89,7 @@ model TeamMember {
   @@index([playerId], map: "team_members_player_id_idx")
   @@index([playerId, teamId], map: "team_members_player_team_idx")
   @@index([teamId], map: "team_members_team_id_idx")
+  @@index([year])
   @@map("team_members")
 }
 
@@ -104,38 +108,42 @@ model Event {
   symbol            String
   duration          Int?
   combinedTeamData  Json?
+  year              Int?               @default(2025)
   eloHistory        EloHistory[]
   eventRatings      EventRating[]
+  games             Game[]
   tournamentBracket TournamentBracket?
   votes             Vote[]
-  games             Game[]
 
+  @@index([year])
   @@map("events")
 }
 
 model Game {
-  id              String        @id @default(cuid())
-  eventId         String
-  team1Id         String?
-  team2Id         String?
-  team1Score      Int?
-  team2Score      Int?
-  status          GameStatus    @default(SCHEDULED)
-  scheduledTime   DateTime?
-  location        String?
-  scorekeeperId   String?
-  completedAt     DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  team1           Team?         @relation("Team1Games", fields: [team1Id], references: [id])
-  team2           Team?         @relation("Team2Games", fields: [team2Id], references: [id])
-  scorekeeper     User?         @relation("GameScorekeeper", fields: [scorekeeperId], references: [id])
+  id            String     @id @default(cuid())
+  eventId       String
+  team1Id       String?
+  team2Id       String?
+  team1Score    Int?
+  team2Score    Int?
+  status        GameStatus @default(SCHEDULED)
+  scheduledTime DateTime?
+  location      String?
+  scorekeeperId String?
+  completedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  year          Int?       @default(2025)
+  event         Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  scorekeeper   User?      @relation("GameScorekeeper", fields: [scorekeeperId], references: [id])
+  team1         Team?      @relation("Team1Games", fields: [team1Id], references: [id])
+  team2         Team?      @relation("Team2Games", fields: [team2Id], references: [id])
 
   @@index([eventId])
   @@index([team1Id])
   @@index([team2Id])
   @@index([status])
+  @@index([year])
   @@map("games")
 }
 
@@ -334,6 +342,17 @@ model TournamentMatch {
   @@index([tournamentBracketId, round])
   @@index([tournamentBracketId, isWinnersBracket])
   @@map("tournament_matches")
+}
+
+model Year {
+  id          String   @id @default(cuid())
+  year        Int      @unique
+  isActive    Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("years")
 }
 
 enum EventType {

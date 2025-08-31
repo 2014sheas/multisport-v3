@@ -21,7 +21,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const yearParam = searchParams.get("year");
+    const year = yearParam ? parseInt(yearParam) : undefined;
+
     const events = await prisma.event.findMany({
+      where: year ? { year } : {},
       orderBy: {
         startTime: "desc",
       },
@@ -37,6 +42,7 @@ export async function GET(request: NextRequest) {
         location: true,
         points: true,
         finalStandings: true,
+        year: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -80,6 +86,8 @@ export async function POST(request: NextRequest) {
       location,
       points,
       finalStandings,
+      duration,
+      year,
     } = await request.json();
 
     if (!name || !abbreviation || !symbol || !eventType || !status) {
@@ -87,6 +95,16 @@ export async function POST(request: NextRequest) {
         { error: "Missing required fields" },
         { status: 400 }
       );
+    }
+
+    // Get the current active year if none specified
+    let eventYear = year;
+    if (!eventYear) {
+      const activeYear = await prisma.year.findFirst({
+        where: { isActive: true },
+        select: { year: true },
+      });
+      eventYear = activeYear?.year || new Date().getFullYear();
     }
 
     // Create the event and event ratings for all existing players in a transaction
@@ -103,6 +121,8 @@ export async function POST(request: NextRequest) {
           location: location || null,
           points: points || [],
           finalStandings: finalStandings || null,
+          duration: duration || null,
+          year: eventYear,
         },
       });
 

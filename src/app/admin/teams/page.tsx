@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2, Calendar } from "lucide-react";
 
 interface Player {
   id: string;
@@ -17,6 +17,7 @@ interface Team {
   name: string;
   color: string;
   abbreviation?: string;
+  year: number;
   captain?: {
     id: string;
     name: string;
@@ -33,16 +34,28 @@ interface User {
   email: string;
 }
 
+interface Year {
+  id: string;
+  year: number;
+  isActive: boolean;
+  description?: string;
+}
+
 export default function AdminTeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [years, setYears] = useState<Year[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [createTeamData, setCreateTeamData] = useState({
     name: "",
+    year: new Date().getFullYear(),
   });
   const [showCaptainModal, setShowCaptainModal] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
@@ -52,28 +65,33 @@ export default function AdminTeamsPage() {
   const [editTeamName, setEditTeamName] = useState<string>("");
   const [editTeamColor, setEditTeamColor] = useState<string>("#3B82F6");
   const [editTeamAbbreviation, setEditTeamAbbreviation] = useState<string>("");
+  const [editTeamYear, setEditTeamYear] = useState<number>(
+    new Date().getFullYear()
+  );
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const fetchData = async () => {
     try {
-      const [teamsResponse, playersResponse, usersResponse] = await Promise.all(
-        [
-          fetch("/api/admin/teams"),
+      const [teamsResponse, playersResponse, usersResponse, yearsResponse] =
+        await Promise.all([
+          fetch(`/api/admin/teams?year=${selectedYear}`),
           fetch("/api/admin/players"),
           fetch("/api/admin/users"),
-        ]
-      );
+          fetch("/api/admin/years"),
+        ]);
 
       const teamsData = await teamsResponse.json();
       const playersData = await playersResponse.json();
       const usersData = await usersResponse.json();
+      const yearsData = await yearsResponse.json();
 
       setTeams(teamsData.teams || []);
       setPlayers(playersData.players || []);
       setUsers(usersData.users || []);
+      setYears(yearsData.years || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -89,22 +107,44 @@ export default function AdminTeamsPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/players/${playerId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          teamId: teamId,
-        }),
-      });
+      if (teamId) {
+        // Assign player to team for the selected year
+        const response = await fetch("/api/admin/team-members", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            teamId,
+            playerId,
+            year: selectedYear,
+          }),
+        });
 
-      if (response.ok) {
-        setMessage("Team assignment updated successfully!");
-        setTimeout(() => setMessage(""), 3000);
-        fetchData(); // Refresh data
+        if (response.ok) {
+          setMessage("Player assigned to team successfully!");
+          setTimeout(() => setMessage(""), 3000);
+          fetchData(); // Refresh data
+        } else {
+          const errorData = await response.json();
+          setMessage(errorData.error || "Failed to assign player to team");
+        }
       } else {
-        setMessage("Failed to update team assignment");
+        // Remove player from team for the selected year
+        const response = await fetch(
+          `/api/admin/team-members?teamId=${playerId}&playerId=${playerId}&year=${selectedYear}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (response.ok) {
+          setMessage("Player removed from team successfully!");
+          setTimeout(() => setMessage(""), 3000);
+          fetchData(); // Refresh data
+        } else {
+          setMessage("Failed to remove player from team");
+        }
       }
     } catch (error) {
       console.error("Error updating team assignment:", error);
@@ -138,13 +178,16 @@ export default function AdminTeamsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name: createTeamData.name }),
+        body: JSON.stringify({
+          name: createTeamData.name,
+          year: createTeamData.year,
+        }),
       });
 
       if (response.ok) {
         setMessage("Team created successfully!");
         setShowCreateTeam(false);
-        setCreateTeamData({ name: "" });
+        setCreateTeamData({ name: "", year: new Date().getFullYear() });
         setTimeout(() => setMessage(""), 3000);
         fetchData();
       } else {
@@ -204,6 +247,7 @@ export default function AdminTeamsPage() {
     setEditTeamName(team.name);
     setEditTeamColor(team.color);
     setEditTeamAbbreviation(team.abbreviation || "");
+    setEditTeamYear(team.year);
     setShowEditTeamModal(true);
   };
 
@@ -217,67 +261,32 @@ export default function AdminTeamsPage() {
     setMessage("");
 
     try {
-      // Send name update first
-      const nameResponse = await fetch(`/api/admin/teams/${editingTeam.id}`, {
+      // Send all updates together
+      const response = await fetch(`/api/admin/teams/${editingTeam.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name: editTeamName.trim() }),
+        body: JSON.stringify({
+          name: editTeamName.trim(),
+          color: editTeamColor,
+          abbreviation: editTeamAbbreviation.trim() || null,
+          year: editTeamYear,
+        }),
       });
 
-      // Send color update second
-      const colorResponse = await fetch(`/api/admin/teams/${editingTeam.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ color: editTeamColor }),
-      });
-
-      // Send abbreviation update third
-      const abbreviationResponse = await fetch(
-        `/api/admin/teams/${editingTeam.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            abbreviation: editTeamAbbreviation.trim() || null,
-          }),
-        }
-      );
-
-      if (nameResponse.ok && colorResponse.ok && abbreviationResponse.ok) {
+      if (response.ok) {
         setMessage("Team updated successfully!");
-
-        // Update the team in the local state instead of refetching all data
-        setTeams((prevTeams) =>
-          prevTeams.map((team) =>
-            team.id === editingTeam.id
-              ? {
-                  ...team,
-                  name: editTeamName.trim(),
-                  color: editTeamColor,
-                  abbreviation: editTeamAbbreviation.trim() || undefined,
-                }
-              : team
-          )
-        );
-
         setShowEditTeamModal(false);
         setEditingTeam(null);
         setEditTeamName("");
-        setEditTeamColor("#3B82F6"); // Reset color
-        setEditTeamAbbreviation(""); // Reset abbreviation
+        setEditTeamColor("#3B82F6");
+        setEditTeamAbbreviation("");
+        setEditTeamYear(new Date().getFullYear());
         setTimeout(() => setMessage(""), 3000);
+        fetchData();
       } else {
-        const errorData = (await nameResponse.ok)
-          ? (await colorResponse.ok)
-            ? await abbreviationResponse.json()
-            : await colorResponse.json()
-          : await nameResponse.json();
+        const errorData = await response.json();
         setMessage(errorData.error || "Failed to update team");
       }
     } catch (error) {
@@ -303,13 +312,30 @@ export default function AdminTeamsPage() {
           <Users className="w-6 h-6 text-blue-600 mr-3" />
           <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
         </div>
-        <button
-          onClick={() => setShowCreateTeam(true)}
-          className="bg-blue-600 text-white px-4 py-3 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 flex items-center justify-center w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Team
-        </button>
+        <div className="flex items-center space-x-4">
+          {/* Year Selector */}
+          <div className="flex items-center space-x-2">
+            <Calendar className="w-4 h-4 text-gray-600" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+            >
+              {years.map((year) => (
+                <option key={year.id} value={year.year}>
+                  {year.year} {year.isActive ? "(Active)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={() => setShowCreateTeam(true)}
+            className="bg-blue-600 text-white px-4 py-3 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 flex items-center justify-center w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Team
+          </button>
+        </div>
       </div>
 
       {message && (
@@ -323,6 +349,22 @@ export default function AdminTeamsPage() {
           {message}
         </div>
       )}
+
+      {/* Year Info */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+        <div className="flex items-center">
+          <Calendar className="w-5 h-5 text-blue-600 mr-2" />
+          <div>
+            <h3 className="text-sm font-medium text-blue-800">
+              Managing Teams for {selectedYear}
+            </h3>
+            <p className="text-sm text-blue-700">
+              {years.find((y) => y.year === selectedYear)?.description ||
+                "View and manage teams for this year"}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {players.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
@@ -348,16 +390,19 @@ export default function AdminTeamsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
         {/* Teams Section */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Teams</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Teams for {selectedYear}
+          </h2>
           <div className="space-y-4">
             {teams.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-sm font-medium text-gray-900 mb-2">
-                  No teams created yet
+                  No teams created for {selectedYear}
                 </h3>
                 <p className="text-gray-500 text-sm mb-4">
-                  Create your first team to get started with team management.
+                  Create your first team for this year to get started with team
+                  management.
                 </p>
                 <button
                   onClick={() => setShowCreateTeam(true)}
@@ -381,7 +426,7 @@ export default function AdminTeamsPage() {
                           {team.name}
                         </h3>
                         <p className="text-xs text-gray-500">
-                          Captain:{" "}
+                          Year: {team.year} | Captain:{" "}
                           {team.captain ? (
                             <span className="flex items-center space-x-2">
                               <span>{team.captain.name}</span>
@@ -490,7 +535,7 @@ export default function AdminTeamsPage() {
         {/* Unassigned Players Section */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Unassigned Players
+            Unassigned Players for {selectedYear}
           </h2>
           {players.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -516,7 +561,7 @@ export default function AdminTeamsPage() {
                   <p className="text-gray-500 text-sm">
                     {players.length === 0
                       ? "No players have been created yet. Create players first, then create teams to assign them to."
-                      : "All players have been successfully assigned to teams."}
+                      : "All players have been successfully assigned to teams for this year."}
                   </p>
                   {players.length === 0 && (
                     <div className="mt-4">
@@ -589,7 +634,7 @@ export default function AdminTeamsPage() {
           <div className="relative top-4 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Create New Team
+                Create New Team for {selectedYear}
               </h3>
               <form onSubmit={handleCreateTeam}>
                 <div className="mb-4">
@@ -609,13 +654,37 @@ export default function AdminTeamsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Year
+                  </label>
+                  <select
+                    value={createTeamData.year}
+                    onChange={(e) =>
+                      setCreateTeamData({
+                        ...createTeamData,
+                        year: parseInt(e.target.value),
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {years.map((year) => (
+                      <option key={year.id} value={year.year}>
+                        {year.year} {year.isActive ? "(Active)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <div className="flex flex-col sm:flex-row justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       setShowCreateTeam(false);
-                      setCreateTeamData({ name: "" });
+                      setCreateTeamData({
+                        name: "",
+                        year: new Date().getFullYear(),
+                      });
                     }}
                     className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                   >
@@ -751,6 +820,22 @@ export default function AdminTeamsPage() {
                     empty to auto-generate.
                   </p>
                 </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Year
+                  </label>
+                  <select
+                    value={editTeamYear}
+                    onChange={(e) => setEditTeamYear(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {years.map((year) => (
+                      <option key={year.id} value={year.year}>
+                        {year.year} {year.isActive ? "(Active)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="flex flex-col sm:flex-row justify-end gap-3">
                   <button
                     type="button"
@@ -758,8 +843,9 @@ export default function AdminTeamsPage() {
                       setShowEditTeamModal(false);
                       setEditingTeam(null);
                       setEditTeamName("");
-                      setEditTeamColor("#3B82F6"); // Reset color
-                      setEditTeamAbbreviation(""); // Reset abbreviation
+                      setEditTeamColor("#3B82F6");
+                      setEditTeamAbbreviation("");
+                      setEditTeamYear(new Date().getFullYear());
                     }}
                     className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                   >
