@@ -1,128 +1,100 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
+import { withFullValidation } from "@/lib/validation";
+import { z } from "@/lib/validation/schemas";
+import {
+  PlayerService,
+  UserService,
+  TeamMembershipService,
+  RatingService,
+} from "@/lib/database";
+import { NotFoundError } from "@/lib/errors";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ name: string }> }
-) {
-  const { name } = await params;
-  const decodedName = decodeURIComponent(name);
+export const GET = withErrorHandling(
+  withFullValidation(
+    {
+      params: z.object({ name: z.string() }),
+    },
+    { path: "/api/players/by-name/[name]" }
+  )(({ params }) => {
+    const { name } = params!;
+    const decodedName = decodeURIComponent(name);
 
-  try {
-    const player = await prisma.player.findFirst({
-      where: {
-        name: decodedName,
-      },
-      select: {
-        id: true,
-        name: true,
-        experience: true,
-        wins: true,
-        eloRating: true,
-        teamMembers: {
-          select: {
-            team: {
-              select: {
-                id: true,
-                name: true,
-                color: true,
-                abbreviation: true,
-              },
-            },
-          },
-        },
-        _count: {
-          select: {
-            eventRatings: true,
-          },
-        },
-      },
-    });
+    return getPlayerByName(decodedName);
+  }),
+  "/api/players/by-name/[name]"
+);
 
-    if (!player) {
-      return NextResponse.json({ error: "Player not found" }, { status: 404 });
-    }
+async function getPlayerByName(name: string) {
+  const playerService = new PlayerService();
+  const userService = new UserService();
+  const teamMembershipService = new TeamMembershipService();
+  const ratingService = new RatingService();
 
-    // Check if player is a captain
-    const isCaptain = await prisma.team.findFirst({
-      where: {
-        captainId: player.id,
-      },
-      select: {
-        id: true,
-      },
-    });
+  // Get player with basic data
+  const player = await playerService.getPlayerByName(name);
 
-    // Calculate global rank for overall rating
-    const allPlayers = await prisma.player.findMany({
-      select: {
-        id: true,
-        eventRatings: {
-          select: {
-            rating: true,
-          },
-        },
-      },
-      orderBy: {
-        id: "asc", // Consistent ordering for ranking calculation
-      },
-    });
-
-    // Calculate overall ratings for all players (same logic as rankings page)
-    const playersWithOverallRatings = allPlayers
-      .map((p) => {
-        let overallRating = 5000; // Default rating if no event ratings exist
-        if (p.eventRatings.length > 0) {
-          const totalRating = p.eventRatings.reduce(
-            (sum, er) => sum + er.rating,
-            0
-          );
-          overallRating = Math.round(totalRating / p.eventRatings.length);
-        }
-        return {
-          id: p.id,
-          rating: overallRating,
-        };
-      })
-      .sort((a, b) => b.rating - a.rating);
-
-    // Find this player's global rank
-    const globalRank =
-      playersWithOverallRatings.findIndex((p) => p.id === player.id) + 1;
-
-    // Get the player's calculated overall rating
-    const playerOverallRating =
-      playersWithOverallRatings.find((p) => p.id === player.id)?.rating || 5000;
-
-    // Get profile picture from linked user account
-    const userWithProfilePicture = await prisma.user.findFirst({
-      where: {
-        playerId: player.id,
-      },
-      select: {
-        image: true,
-      },
-    });
-
-    // Format the response
-    const formattedPlayer = {
-      id: player.id,
-      name: player.name,
-      experience: player.experience || 0,
-      wins: player.wins || 0,
-      eloRating: playerOverallRating, // Use calculated overall rating
-      globalRank: globalRank,
-      profilePicture: userWithProfilePicture?.image || null,
-      team: player.teamMembers.length > 0 ? player.teamMembers[0].team : null,
-      isCaptain: !!isCaptain,
-    };
-
-    return NextResponse.json({ player: formattedPlayer });
-  } catch (error) {
-    console.error("Error fetching player:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch player" },
-      { status: 500 }
-    );
+  if (!player) {
+    throw new NotFoundError("Player");
   }
+
+  const playerData = player as any;
+
+  // Get player's overall rating using centralized service
+  const overallRating = ratingService.calculatePlayerAverageRating(playerData, {
+    useEventRatings: true,
+  });
+
+  // Get global rank using optimized query
+  const globalRank = await getPlayerGlobalRank(playerData.id);
+
+  // Get profile picture using centralized service
+  const playerWithProfile = await userService.getPlayerWithProfile(
+    playerData.id
+  );
+
+  // Get team membership info using centralized service
+  const teamMembershipInfo =
+    await teamMembershipService.getPlayerTeamMembershipInfo(playerData.id);
+
+  // Get captain status using centralized service
+  const isCaptain = await teamMembershipService.isPlayerCaptain(playerData.id);
+
+  // Format the response
+  const formattedPlayer = {
+    id: playerData.id,
+    name: playerData.name,
+    experience: playerData.experience || 0,
+    wins: playerData.wins || 0,
+    eloRating: overallRating,
+    globalRank,
+    profilePicture: playerWithProfile?.profilePicture || null,
+    team:
+      teamMembershipInfo.length > 0
+        ? {
+            id: teamMembershipInfo[0].teamId,
+            name: teamMembershipInfo[0].teamName,
+            color: teamMembershipInfo[0].teamColor,
+            abbreviation: teamMembershipInfo[0].teamAbbreviation,
+          }
+        : null,
+    isCaptain,
+  };
+
+  return { player: formattedPlayer };
+}
+
+async function getPlayerGlobalRank(playerId: string): Promise<number> {
+  const ratingService = new RatingService();
+
+  // Get all players with their overall ratings
+  const playersWithRatings = await ratingService.getPlayersWithOverallRatings({
+    includeTrend: false,
+  });
+
+  // Sort by rating and find rank
+  const sortedPlayers = playersWithRatings.sort((a, b) => b.rating - a.rating);
+  const rank = sortedPlayers.findIndex((p) => p.id === playerId) + 1;
+
+  return rank;
 }

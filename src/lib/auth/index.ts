@@ -4,4 +4,5 @@
  */
 
 export * from "./middleware";
+export * from "./helpers";
 export { authOptions } from "../auth-config";
