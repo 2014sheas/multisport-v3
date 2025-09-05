@@ -34,14 +34,26 @@ export default function TeamsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [events, setEvents] = useState<Event[]>([]);
+  const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
+    fetchCurrentYear();
     fetchEvents();
   }, []);
 
   useEffect(() => {
     fetchTeams();
-  }, [selectedEventId]);
+  }, [selectedEventId, currentYear]);
+
+  const fetchCurrentYear = async () => {
+    try {
+      const response = await fetch("/api/current-year");
+      const data = await response.json();
+      setCurrentYear(data.year || new Date().getFullYear());
+    } catch (error) {
+      console.error("Error fetching current year:", error);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -55,7 +67,7 @@ export default function TeamsPage() {
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch("/api/teams");
+      const response = await fetch(`/api/teams?year=${currentYear}`);
       const data = await response.json();
       setTeams(data.data?.teams || []);
     } catch (error) {
