@@ -23,6 +23,12 @@ interface Team {
   }[];
 }
 
+interface Event {
+  id: string;
+  name: string;
+  abbreviation: string;
+}
+
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +57,7 @@ export default function TeamsPage() {
     try {
       const response = await fetch("/api/teams");
       const data = await response.json();
-      setTeams(data.teams || []);
+      setTeams(data.data?.teams || []);
     } catch (error) {
       console.error("Error fetching teams:", error);
     } finally {

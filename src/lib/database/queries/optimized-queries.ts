@@ -95,8 +95,8 @@ export class OptimizedQueries {
           }
 
           return {
-            playerId: player.id,
-            playerName: player.name,
+            id: player.id,
+            name: player.name,
             rating,
             ...(includeTrend && { trend }),
           };
@@ -344,8 +344,8 @@ export class OptimizedQueries {
           }
 
           return {
-            playerId: player.id,
-            playerName: player.name,
+            id: player.id,
+            name: player.name,
             rating,
             ...(includeTrend && { trend }),
           };
@@ -422,8 +422,8 @@ export class OptimizedQueries {
           );
 
           return {
-            playerId: player.id,
-            playerName: player.name,
+            id: player.id,
+            name: player.name,
             rating,
           };
         });
