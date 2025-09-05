@@ -165,7 +165,7 @@ export default function EventPage({
       const teamsResponse = await fetch(`/api/events/${abbreviation}/teams`);
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json();
-        setTeams(teamsData.teams);
+        setTeams(teamsData.data?.teams || []);
       }
 
       // Fetch tournament bracket if this is a tournament event and it's not in upcoming status

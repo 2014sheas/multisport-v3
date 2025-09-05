@@ -49,7 +49,7 @@ export default function AdminDashboard() {
       setStats({
         totalUsers: usersData.users?.length || 0,
         totalPlayers: playersData.players?.length || 0,
-        totalTeams: teamsData.teams?.length || 0,
+        totalTeams: teamsData.data?.teams?.length || 0,
         totalEvents: eventsData.events?.length || 0,
       });
     } catch (error) {
