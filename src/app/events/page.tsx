@@ -129,7 +129,7 @@ export default function EventsPage() {
     if (team) {
       return team.name;
     }
-    return `Team ${teamId}`; // Fallback if team not found
+    return `Unknown Team (${teamId.slice(-4)})`; // Fallback - show last 4 chars of ID
   };
 
   if (loading) {
@@ -301,7 +301,8 @@ export default function EventsPage() {
               {/* Final Standings */}
               {event.status === "COMPLETED" &&
                 event.finalStandings &&
-                event.finalStandings.length > 0 && (
+                event.finalStandings.length > 0 &&
+                teams.length > 0 && (
                   <div>
                     <p className="text-sm font-medium text-gray-900 mb-2">
                       Final Standings:
