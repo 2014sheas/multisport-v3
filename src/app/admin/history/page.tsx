@@ -81,7 +81,7 @@ export default function AdminHistoryPage() {
       const eventsData = await eventsResponse.json();
 
       setYears(yearsData.years || []);
-      setTeams(teamsData.teams || []);
+      setTeams(teamsData.data?.teams || []);
       setEvents(eventsData.events || []);
     } catch (error) {
       console.error("Error fetching data:", error);

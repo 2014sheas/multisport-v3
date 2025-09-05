@@ -88,7 +88,7 @@ export default function AdminTeamsPage() {
       const usersData = await usersResponse.json();
       const yearsData = await yearsResponse.json();
 
-      setTeams(teamsData.teams || []);
+      setTeams(teamsData.data?.teams || []);
       setPlayers(playersData.players || []);
       setUsers(usersData.users || []);
       setYears(yearsData.years || []);
