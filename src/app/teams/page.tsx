@@ -34,7 +34,9 @@ export default function TeamsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [events, setEvents] = useState<Event[]>([]);
-  const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
+  const [currentYear, setCurrentYear] = useState<number>(
+    new Date().getFullYear()
+  );
 
   useEffect(() => {
     fetchCurrentYear();
